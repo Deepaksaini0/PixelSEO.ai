@@ -874,6 +874,131 @@ Respond with ONLY the JSON object, no markdown or extra text.`;
   // ── Watermark Remover ──────────────────────────────────────────────────────
   const wmUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
+  // Content-aware fill helper: samples border pixels around a region and fills it
+  async function contentAwareFill(imgBuf: Buffer, left: number, top: number, width: number, height: number, iW: number, iH: number): Promise<Buffer> {
+    // Expand a padding zone around the watermark region to sample surrounding context
+    const pad    = Math.max(20, Math.round(Math.max(width, height) * 0.5));
+    const pLeft  = Math.max(0, left - pad);
+    const pTop   = Math.max(0, top  - pad);
+    const pRight = Math.min(iW, left + width  + pad);
+    const pBot   = Math.min(iH, top  + height + pad);
+    const pW     = pRight - pLeft;
+    const pH     = pBot   - pTop;
+
+    // Heavily blur the padded region — this averages surrounding pixels
+    const blurSigma = Math.max(15, Math.round(Math.max(width, height) * 0.4));
+    const blurredPad = await sharp(imgBuf)
+      .extract({ left: pLeft, top: pTop, width: pW, height: pH })
+      .blur(blurSigma)
+      .toBuffer();
+
+    // Extract only the watermark-sized slice from the blurred patch
+    const sliceLeft = left - pLeft;
+    const sliceTop  = top  - pTop;
+    const fill = await sharp(blurredPad)
+      .extract({ left: sliceLeft, top: sliceTop, width, height })
+      .toBuffer();
+
+    // Composite fill back and apply gentle edge-blend blur
+    const intermediate = await sharp(imgBuf)
+      .composite([{ input: fill, left, top }])
+      .toBuffer();
+
+    // Second pass: slight blur on the seam only
+    const seamPad  = 6;
+    const sLeft    = Math.max(0, left   - seamPad);
+    const sTop     = Math.max(0, top    - seamPad);
+    const sWidth   = Math.min(iW - sLeft, width  + seamPad * 2);
+    const sHeight  = Math.min(iH - sTop,  height + seamPad * 2);
+    const seamRegion = await sharp(intermediate).extract({ left: sLeft, top: sTop, width: sWidth, height: sHeight }).blur(2).toBuffer();
+
+    return sharp(intermediate)
+      .composite([{ input: seamRegion, left: sLeft, top: sTop }])
+      .jpeg({ quality: 95 })
+      .toBuffer();
+  }
+
+  // Auto-remove: GPT-4o Vision detects watermarks, Sharp removes them
+  app.post("/api/image/auto-remove-watermark", wmUpload.single("image"), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Image required" });
+
+      const imgBuf = req.file.buffer;
+      const meta   = await sharp(imgBuf).metadata();
+      const iW     = meta.width!;
+      const iH     = meta.height!;
+
+      // Resize to max 1200px for vision API (keeps cost + speed reasonable)
+      const visionBuf = await sharp(imgBuf)
+        .resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      const b64 = visionBuf.toString("base64");
+
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      const visionRes = await openai.chat.completions.create({
+        model: "gpt-4.1",
+        max_tokens: 512,
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Analyze this image and detect all watermarks (text overlays, logos, copyright stamps, semi-transparent brand marks).
+Return ONLY a JSON object — no explanation — in this exact format:
+{
+  "watermarks": [
+    { "x": <left% 0-100>, "y": <top% 0-100>, "w": <width% 1-100>, "h": <height% 1-100>, "type": "text|logo|stamp" }
+  ]
+}
+Coordinates are percentages of the full image dimensions. If no watermarks found return {"watermarks":[]}.`
+            },
+            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}`, detail: "high" } }
+          ]
+        }]
+      });
+
+      let regions: Array<{ x: number; y: number; w: number; h: number }> = [];
+      try {
+        const raw  = visionRes.choices[0].message.content || "{}";
+        const json = JSON.parse(raw.replace(/```json|```/g, "").trim());
+        regions    = (json.watermarks || []).slice(0, 8);
+      } catch {
+        // If GPT returns unparseable response, treat whole image bottom-right as guess
+        regions = [{ x: 60, y: 80, w: 38, h: 15 }];
+      }
+
+      if (regions.length === 0) {
+        // No watermarks detected — return original with a flag
+        res.set("Content-Type", "image/jpeg");
+        res.set("X-Watermarks-Found", "0");
+        const out = await sharp(imgBuf).jpeg({ quality: 95 }).toBuffer();
+        return res.send(out);
+      }
+
+      // Apply content-aware fill for each detected region
+      let workBuf = imgBuf;
+      for (const r of regions) {
+        const left   = Math.max(0, Math.round((r.x / 100) * iW));
+        const top    = Math.max(0, Math.round((r.y / 100) * iH));
+        const width  = Math.min(iW - left, Math.max(4, Math.round((r.w / 100) * iW)));
+        const height = Math.min(iH - top,  Math.max(4, Math.round((r.h / 100) * iH)));
+        workBuf = await contentAwareFill(workBuf, left, top, width, height, iW, iH);
+      }
+
+      res.set("Content-Type", "image/jpeg");
+      res.set("X-Watermarks-Found", String(regions.length));
+      res.send(workBuf);
+    } catch (err: any) {
+      console.error("Auto watermark removal error:", err);
+      res.status(500).json({ error: "Auto removal failed: " + (err.message || "Unknown error") });
+    }
+  });
+
   app.post("/api/image/remove-watermark", wmUpload.single("image"), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "Image required" });
