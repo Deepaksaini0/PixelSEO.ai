@@ -13,6 +13,7 @@ import SEOAuditToolsPage from "@/pages/SEOAuditTools";
 import TextToHTMLPage from "@/pages/TextToHTML";
 import WebToolsPage from "@/pages/WebTools";
 import AISEOAuditPage from "@/pages/AISEOAudit";
+import WatermarkRemoverPage from "@/pages/WatermarkRemoverPage";
 import NotFound from "@/pages/not-found";
 
 // ── Per-page SEO metadata ──────────────────────────────────────────────────────
@@ -51,6 +52,11 @@ const PAGE_META: Record<string, { title: string; description: string; canonical:
     title: "FAQ Schema Generator — Create Structured FAQ JSON-LD for Google Rich Results",
     description: "Generate FAQ schema markup (JSON-LD) for your website. Add structured FAQ data to earn Google rich results and boost your click-through rate from search.",
     canonical: "https://imageconvert.tools/faq",
+  },
+  "/watermark-remover": {
+    title: "Free AI Watermark Remover — Remove Watermarks from Images Online",
+    description: "Remove watermarks from images for free using AI. Automatically detects and removes text watermarks, logo stamps and overlays. Before/after slider, no signup needed.",
+    canonical: "https://imageconvert.tools/watermark-remover",
   },
 };
 
@@ -111,6 +117,7 @@ function Router() {
         <Route path="/seo-audit" component={SEOAuditPage} />
         <Route path="/seo-tools" component={SEOAuditToolsPage} />
         <Route path="/free-seo-audit" component={AISEOAuditPage} />
+        <Route path="/watermark-remover" component={WatermarkRemoverPage} />
         <Route path="/text-to-html" component={TextToHTMLPage} />
         <Route path="/web-tools" component={WebToolsPage} />
         <Route component={NotFound} />
