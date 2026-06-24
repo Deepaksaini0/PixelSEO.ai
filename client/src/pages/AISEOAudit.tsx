@@ -42,6 +42,25 @@ interface AuditReport {
     coreWebVitals: { lcp: string; cls: string; inp: string; lcpTip: string; clsTip: string; inpTip: string };
   };
 }
+interface LocalSEOReport {
+  url: string; businessName: string; location: string; phone: string;
+  overallScore: number; napScore: number; citationScore: number; reviewScore: number; localKeywordsScore: number;
+  signals: { hasGBP: boolean; hasNAP: boolean; hasLocalKeywords: boolean; hasSchemaMarkup: boolean; hasMobileOptimized: boolean; hasHttps: boolean };
+  localKeywords: { keyword: string; intent: string; volume: string }[];
+  recommendations: { priority: "high" | "medium" | "low"; action: string; impact: string }[];
+  napData: { name: string; address: string; phone: string; consistent: boolean };
+  citationOpportunities: string[];
+  summary: string;
+}
+interface AISEOReport {
+  url: string; currentTitle: string; currentMeta: string;
+  title: string; description: string; keywords: string[];
+  schemaType: string; contentScore: number; readabilityScore: number; aiScore: number;
+  suggestions: { type: string; current: string; recommended: string; impact: string }[];
+  contentIdeas: { topic: string; format: string; keywords: string[] }[];
+  faqs: { question: string; answer: string }[];
+  summary: string;
+}
 
 // ── Score ring (circular progress) ────────────────────────────────────────────
 function ScoreRing({ score, size = 100, label, big = false }: { score: number; size?: number; label?: string; big?: boolean }) {
@@ -189,6 +208,21 @@ export default function AISEOAudit() {
   const [searchQ,  setSearchQ]  = useState("");
   const [seoSubTab, setSeoSubTab] = useState<"google" | "local" | "ai">("google");
 
+  // ── Local SEO state ──
+  const [localUrl,      setLocalUrl]      = useState("");
+  const [localBizName,  setLocalBizName]  = useState("");
+  const [localLocation, setLocalLocation] = useState("");
+  const [localPhone,    setLocalPhone]    = useState("");
+  const [localLoading,  setLocalLoading]  = useState(false);
+  const [localReport,   setLocalReport]   = useState<LocalSEOReport | null>(null);
+  const [localCopied,   setLocalCopied]   = useState<string | null>(null);
+
+  // ── AI SEO state ──
+  const [aiSeoUrl,     setAiSeoUrl]     = useState("");
+  const [aiSeoLoading, setAiSeoLoading] = useState(false);
+  const [aiSeoReport,  setAiSeoReport]  = useState<AISEOReport | null>(null);
+  const [aiCopied,     setAiCopied]     = useState<string | null>(null);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
@@ -224,6 +258,45 @@ export default function AISEOAudit() {
     } finally {
       clearInterval(iv); setLoading(false);
     }
+  };
+
+  const runLocalAudit = async () => {
+    const trimmed = localUrl.trim();
+    if (!trimmed || !localBizName.trim() || !localLocation.trim()) {
+      toast({ title: "Please fill in URL, business name, and location", variant: "destructive" }); return;
+    }
+    let normalized = trimmed;
+    if (!/^https?:\/\//i.test(normalized)) normalized = "https://" + normalized;
+    setLocalLoading(true); setLocalReport(null);
+    try {
+      const res  = await fetch("/api/seo/local-audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: normalized, businessName: localBizName.trim(), location: localLocation.trim(), phone: localPhone.trim() }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Local audit failed");
+      setLocalReport(data);
+    } catch (err: any) {
+      toast({ title: "Local audit failed", description: err.message, variant: "destructive" });
+    } finally { setLocalLoading(false); }
+  };
+
+  const runAISEO = async () => {
+    const trimmed = aiSeoUrl.trim();
+    if (!trimmed) { toast({ title: "Enter a URL first", variant: "destructive" }); return; }
+    let normalized = trimmed;
+    if (!/^https?:\/\//i.test(normalized)) normalized = "https://" + normalized;
+    setAiSeoLoading(true); setAiSeoReport(null);
+    try {
+      const res  = await fetch("/api/seo/ai-seo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: normalized }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI SEO analysis failed");
+      setAiSeoReport(data);
+    } catch (err: any) {
+      toast({ title: "AI SEO analysis failed", description: err.message, variant: "destructive" });
+    } finally { setAiSeoLoading(false); }
+  };
+
+  const copyText = (text: string, key: string, setter: (v: string | null) => void) => {
+    navigator.clipboard.writeText(text);
+    setter(key); setTimeout(() => setter(null), 2000);
   };
 
   const handleDownload = () => {
@@ -346,7 +419,7 @@ export default function AISEOAudit() {
       <div className="max-w-7xl mx-auto px-4 py-6">
 
         {/* ── No report: hero input ─────────────────────────────────────────── */}
-        {!report && !loading && (
+        {seoSubTab === "google" && !report && !loading && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
             <div className="rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 text-white p-8 mb-6 relative overflow-hidden">
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
@@ -393,7 +466,7 @@ export default function AISEOAudit() {
 
         {/* ── Loading ───────────────────────────────────────────────────────── */}
         <AnimatePresence>
-          {loading && (
+          {seoSubTab === "google" && loading && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="flex flex-col items-center gap-8 py-20">
               <div className="relative">
@@ -420,7 +493,7 @@ export default function AISEOAudit() {
 
         {/* ── Full results dashboard ────────────────────────────────────────── */}
         <AnimatePresence>
-          {report && !loading && (
+          {seoSubTab === "google" && report && !loading && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
 
               {/* Breadcrumb row */}
@@ -861,6 +934,428 @@ export default function AISEOAudit() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            LOCAL SEO TAB
+        ══════════════════════════════════════════════════════════════════════ */}
+        {seoSubTab === "local" && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+
+            {/* Hero form */}
+            {!localReport && !localLoading && (
+              <div className="rounded-2xl bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 text-white p-8 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
+                <div className="relative max-w-2xl mx-auto text-center">
+                  <div className="inline-flex items-center gap-2 bg-white/20 border border-white/30 rounded-full px-4 py-1.5 text-xs font-semibold mb-5">
+                    <Globe className="h-3.5 w-3.5 text-white" /> Local Pack · Google Maps · Citation Audit · 100% Free
+                  </div>
+                  <h1 className="text-3xl sm:text-4xl font-black mb-3">Free Local SEO Audit</h1>
+                  <p className="text-white/80 mb-6 text-sm max-w-lg mx-auto">Analyze your local SEO signals — NAP consistency, Google Business Profile, citations, local keywords, and more.</p>
+                  <div className="grid sm:grid-cols-2 gap-2 max-w-xl mx-auto mb-2">
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                      <Input value={localUrl} onChange={e => setLocalUrl(e.target.value)} placeholder="https://yourbusiness.com"
+                        className="pl-9 h-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 text-sm" data-testid="input-local-url" />
+                    </div>
+                    <div className="relative">
+                      <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                      <Input value={localBizName} onChange={e => setLocalBizName(e.target.value)} placeholder="Business Name"
+                        className="pl-9 h-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 text-sm" data-testid="input-local-bizname" />
+                    </div>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                      <Input value={localLocation} onChange={e => setLocalLocation(e.target.value)} placeholder="City, State (e.g. London, UK)"
+                        className="pl-9 h-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 text-sm" data-testid="input-local-location" />
+                    </div>
+                    <div className="relative">
+                      <Activity className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                      <Input value={localPhone} onChange={e => setLocalPhone(e.target.value)} placeholder="Phone (optional)"
+                        className="pl-9 h-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 text-sm" data-testid="input-local-phone" />
+                    </div>
+                  </div>
+                  <Button onClick={runLocalAudit} disabled={localLoading} size="lg"
+                    className="mt-2 h-11 px-8 bg-white text-orange-600 hover:bg-white/90 font-bold gap-2" data-testid="button-local-audit">
+                    {localLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    Analyze Local SEO
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Feature cards */}
+            {!localReport && !localLoading && (
+              <div className="grid sm:grid-cols-3 gap-4">
+                {[
+                  { icon: Target,   title: "NAP Consistency",      desc: "Name, Address, Phone uniformity across web", color: "text-orange-500" },
+                  { icon: Globe,    title: "Google Business",       desc: "GBP signals, map pack eligibility, categories", color: "text-amber-500" },
+                  { icon: Star,     title: "Reviews & Ratings",     desc: "Review signals, star ratings, response rate", color: "text-yellow-500" },
+                  { icon: Link2,    title: "Citation Opportunities", desc: "Yelp, Yellow Pages, Bing, Apple Maps and more", color: "text-orange-600" },
+                  { icon: Search,   title: "Local Keywords",        desc: "Near-me and geo-targeted keyword opportunities", color: "text-amber-600" },
+                  { icon: Shield,   title: "Schema Markup",         desc: "LocalBusiness, Opening Hours, Contact structured data", color: "text-red-500" },
+                ].map(({ icon: Icon, title, desc, color }) => (
+                  <div key={title} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow">
+                    <Icon className={`h-6 w-6 ${color} mb-2`} />
+                    <h3 className="font-bold text-sm text-gray-800">{title}</h3>
+                    <p className="text-xs text-gray-500 mt-1">{desc}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Local loading */}
+            {localLoading && (
+              <div className="flex flex-col items-center gap-6 py-20">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full border-4 border-orange-100 border-t-orange-500 animate-spin" />
+                  <Globe className="absolute inset-0 m-auto h-7 w-7 text-orange-500" />
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-gray-800 text-lg">Analyzing Local SEO…</p>
+                  <p className="text-sm text-gray-500 mt-1">Checking signals, citations, and local keywords · Usually 10–20 seconds</p>
+                </div>
+              </div>
+            )}
+
+            {/* Local results */}
+            {localReport && !localLoading && (
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <h2 className="text-xl font-black text-gray-900">{localReport.businessName}</h2>
+                    <p className="text-sm text-gray-500">{localReport.location} · <a href={localReport.url} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline">{localReport.url}</a></p>
+                  </div>
+                  <button onClick={() => setLocalReport(null)}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+                    <RefreshCw className="h-3.5 w-3.5" /> New Audit
+                  </button>
+                </div>
+
+                {/* Score rings */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                    <ScoreRing score={localReport.overallScore}       label="Overall"       size={90} big />
+                    <ScoreRing score={localReport.napScore}           label="NAP"           size={80} />
+                    <ScoreRing score={localReport.citationScore}      label="Citations"     size={80} />
+                    <ScoreRing score={localReport.reviewScore}        label="Reviews"       size={80} />
+                    <ScoreRing score={localReport.localKeywordsScore} label="Local Keywords" size={80} />
+                  </div>
+                </div>
+
+                {/* Signals + Summary */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Signals checklist */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-5">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" />Local Signals</p>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Google Business Profile",    ok: localReport.signals.hasGBP },
+                        { label: "NAP Data Found",             ok: localReport.signals.hasNAP },
+                        { label: "Local Keywords in Content",  ok: localReport.signals.hasLocalKeywords },
+                        { label: "Schema Markup Present",      ok: localReport.signals.hasSchemaMarkup },
+                        { label: "Mobile Optimized",           ok: localReport.signals.hasMobileOptimized },
+                        { label: "HTTPS Secure",               ok: localReport.signals.hasHttps },
+                      ].map(({ label, ok }) => (
+                        <div key={label} className="flex items-center gap-2.5 py-1.5 border-b border-gray-50 last:border-0">
+                          {ok
+                            ? <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                            : <XCircle className="h-4 w-4 text-red-400 shrink-0" />}
+                          <span className="text-sm text-gray-700">{label}</span>
+                          <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded ${ok ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"}`}>{ok ? "PASS" : "FAIL"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* AI Summary + Citation Opportunities */}
+                  <div className="space-y-4">
+                    {localReport.summary && (
+                      <div className="bg-white rounded-xl border border-amber-200 bg-amber-50/30 p-5">
+                        <p className="text-xs font-bold text-amber-600 uppercase tracking-wide mb-2 flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5" />AI Summary</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{localReport.summary}</p>
+                      </div>
+                    )}
+                    {(localReport.citationOpportunities ?? []).length > 0 && (
+                      <div className="bg-white rounded-xl border border-gray-200 p-5">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5" />Citation Opportunities</p>
+                        <div className="flex flex-wrap gap-2">
+                          {localReport.citationOpportunities.map((site, i) => (
+                            <span key={i} className="text-xs font-medium px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-full">{site}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Local Keywords table */}
+                {(localReport.localKeywords ?? []).length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="px-5 py-3 border-b border-gray-100">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5"><Search className="h-3.5 w-3.5" />Local Keyword Opportunities</p>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      <div className="grid grid-cols-3 px-5 py-2 bg-gray-50 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        <span>Keyword</span><span>Intent</span><span>Volume</span>
+                      </div>
+                      {localReport.localKeywords.map((kw, i) => (
+                        <div key={i} className="grid grid-cols-3 px-5 py-2.5 items-center text-sm hover:bg-gray-50">
+                          <span className="font-semibold text-gray-700 text-xs">{kw.keyword}</span>
+                          <span className="capitalize text-gray-500 text-xs">{kw.intent}</span>
+                          <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-full font-bold w-fit ${kw.volume === "High" ? "bg-green-50 text-green-600" : kw.volume === "Medium" ? "bg-amber-50 text-amber-600" : "bg-gray-100 text-gray-500"}`}>{kw.volume}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recommendations */}
+                {(localReport.recommendations ?? []).length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="px-5 py-3 border-b border-gray-100">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5"><Lightbulb className="h-3.5 w-3.5" />Recommendations</p>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {localReport.recommendations.map((rec, i) => (
+                        <div key={i} className="flex items-start gap-3 px-5 py-3.5">
+                          <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${rec.priority === "high" ? "bg-red-50 text-red-600" : rec.priority === "medium" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}>{rec.priority.toUpperCase()}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800">{rec.action}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Impact: {rec.impact}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            AI SEO TAB
+        ══════════════════════════════════════════════════════════════════════ */}
+        {seoSubTab === "ai" && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+
+            {/* Hero form */}
+            {!aiSeoReport && !aiSeoLoading && (
+              <div className="rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 text-white p-8 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
+                <div className="relative max-w-2xl mx-auto text-center">
+                  <div className="inline-flex items-center gap-2 bg-white/15 border border-white/25 rounded-full px-4 py-1.5 text-xs font-semibold mb-5">
+                    <Sparkles className="h-3.5 w-3.5 text-yellow-300" /> AI-Powered · GPT-4 Analysis · Meta Tags · Content Ideas
+                  </div>
+                  <h1 className="text-3xl sm:text-4xl font-black mb-3">AI SEO Content Optimizer</h1>
+                  <p className="text-white/75 mb-6 text-sm max-w-lg mx-auto">Generate AI-powered title tags, meta descriptions, keywords, content ideas, FAQs, and schema recommendations.</p>
+                  <div className="flex flex-col sm:flex-row gap-2 max-w-xl mx-auto">
+                    <div className="relative flex-1">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                      <Input value={aiSeoUrl} onChange={e => setAiSeoUrl(e.target.value)} onKeyDown={e => e.key === "Enter" && !aiSeoLoading && runAISEO()}
+                        placeholder="https://yourwebsite.com"
+                        className="pl-9 h-11 bg-white/15 border-white/25 text-white placeholder:text-white/45 text-sm" data-testid="input-ai-seo-url" />
+                    </div>
+                    <Button onClick={runAISEO} disabled={aiSeoLoading} size="lg"
+                      className="h-11 px-7 bg-white text-blue-700 hover:bg-white/90 font-bold gap-2 shrink-0" data-testid="button-ai-seo">
+                      {aiSeoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      {aiSeoLoading ? "Generating…" : "Generate AI SEO"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Feature cards */}
+            {!aiSeoReport && !aiSeoLoading && (
+              <div className="grid sm:grid-cols-3 gap-4">
+                {[
+                  { icon: PenTool,   title: "AI Title & Meta",        desc: "GPT-4 optimized title tags under 60 chars, meta under 160 chars", color: "text-blue-500" },
+                  { icon: Target,    title: "Keyword Suggestions",     desc: "8 AI-generated keywords tailored to your content and industry", color: "text-violet-500" },
+                  { icon: FileText,  title: "Content Ideas",           desc: "Blog posts, guides, FAQs and videos to grow organic traffic", color: "text-indigo-500" },
+                  { icon: BookOpen,  title: "FAQ Generation",          desc: "People-Also-Ask style questions and answers for featured snippets", color: "text-blue-600" },
+                  { icon: BarChart3, title: "Content & Readability",    desc: "AI readability score and content quality analysis", color: "text-violet-600" },
+                  { icon: Shield,    title: "Schema Recommendations",   desc: "Recommended structured data type for maximum SERP visibility", color: "text-indigo-600" },
+                ].map(({ icon: Icon, title, desc, color }) => (
+                  <div key={title} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow">
+                    <Icon className={`h-6 w-6 ${color} mb-2`} />
+                    <h3 className="font-bold text-sm text-gray-800">{title}</h3>
+                    <p className="text-xs text-gray-500 mt-1">{desc}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* AI loading */}
+            {aiSeoLoading && (
+              <div className="flex flex-col items-center gap-6 py-20">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full border-4 border-blue-100 border-t-blue-500 animate-spin" />
+                  <Sparkles className="absolute inset-0 m-auto h-7 w-7 text-blue-500" />
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-gray-800 text-lg">AI is analyzing your website…</p>
+                  <p className="text-sm text-gray-500 mt-1">Generating titles, keywords, content ideas and schema · Usually 10–20 seconds</p>
+                </div>
+              </div>
+            )}
+
+            {/* AI SEO results */}
+            {aiSeoReport && !aiSeoLoading && (
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <h2 className="text-xl font-black text-gray-900">AI SEO Report</h2>
+                    <p className="text-sm text-gray-500"><a href={aiSeoReport.url} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline">{aiSeoReport.url}</a></p>
+                  </div>
+                  <button onClick={() => setAiSeoReport(null)}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+                    <RefreshCw className="h-3.5 w-3.5" /> New Analysis
+                  </button>
+                </div>
+
+                {/* Score rings */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <ScoreRing score={aiSeoReport.aiScore}          label="AI Score"    size={90} big />
+                    <ScoreRing score={aiSeoReport.contentScore}     label="Content"     size={80} />
+                    <ScoreRing score={aiSeoReport.readabilityScore} label="Readability" size={80} />
+                  </div>
+                </div>
+
+                {/* AI Title + Meta Description */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5"><PenTool className="h-3.5 w-3.5" />AI-Generated Meta Tags</p>
+
+                  {/* Title */}
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">Title Tag</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${aiSeoReport.title.length <= 60 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"}`}>{aiSeoReport.title.length}/60 chars</span>
+                        <button onClick={() => copyText(aiSeoReport.title, "title", setAiCopied)} className="text-gray-400 hover:text-gray-600">
+                          {aiCopied === "title" ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                    {aiSeoReport.currentTitle && <p className="text-xs text-gray-400 mb-1">Current: <span className="italic">{aiSeoReport.currentTitle || "None"}</span></p>}
+                    <p className="text-sm font-semibold text-blue-700 bg-blue-50 rounded px-3 py-2">{aiSeoReport.title}</p>
+                  </div>
+
+                  {/* Meta Description */}
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-violet-600 uppercase tracking-wide">Meta Description</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${aiSeoReport.description.length <= 160 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"}`}>{aiSeoReport.description.length}/160 chars</span>
+                        <button onClick={() => copyText(aiSeoReport.description, "desc", setAiCopied)} className="text-gray-400 hover:text-gray-600">
+                          {aiCopied === "desc" ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                    {aiSeoReport.currentMeta && <p className="text-xs text-gray-400 mb-1">Current: <span className="italic">{aiSeoReport.currentMeta || "None"}</span></p>}
+                    <p className="text-sm text-violet-700 bg-violet-50 rounded px-3 py-2">{aiSeoReport.description}</p>
+                  </div>
+                </div>
+
+                {/* Keywords + Schema */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Keywords */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5"><Target className="h-3.5 w-3.5" />AI Keywords</p>
+                      <button onClick={() => copyText((aiSeoReport.keywords ?? []).join(", "), "kw", setAiCopied)} className="text-gray-400 hover:text-gray-600">
+                        {aiCopied === "kw" ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(aiSeoReport.keywords ?? []).map((kw, i) => (
+                        <span key={i} className="text-xs font-medium px-2.5 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full">{kw}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Schema type + AI summary */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" />Schema & AI Insights</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Recommended Schema:</span>
+                      <span className="text-xs font-bold px-2.5 py-1 bg-green-50 text-green-600 border border-green-100 rounded-full">{aiSeoReport.schemaType}</span>
+                    </div>
+                    {aiSeoReport.summary && <p className="text-xs text-gray-600 leading-relaxed">{aiSeoReport.summary}</p>}
+                  </div>
+                </div>
+
+                {/* Suggestions table */}
+                {(aiSeoReport.suggestions ?? []).length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="px-5 py-3 border-b border-gray-100">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5"><Lightbulb className="h-3.5 w-3.5" />AI Optimization Suggestions</p>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      <div className="grid grid-cols-12 px-5 py-2 bg-gray-50 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        <span className="col-span-2">Type</span>
+                        <span className="col-span-4">Current</span>
+                        <span className="col-span-4">Recommended</span>
+                        <span className="col-span-2 text-right">Impact</span>
+                      </div>
+                      {aiSeoReport.suggestions.map((s, i) => (
+                        <div key={i} className="grid grid-cols-12 px-5 py-3 items-start gap-2 hover:bg-gray-50">
+                          <span className="col-span-2 text-xs font-bold text-gray-600">{s.type}</span>
+                          <span className="col-span-4 text-xs text-gray-500 truncate">{s.current || "—"}</span>
+                          <span className="col-span-4 text-xs text-indigo-600 font-medium">{s.recommended}</span>
+                          <span className={`col-span-2 text-right text-[10px] font-bold ${s.impact === "High" ? "text-red-500" : s.impact === "Medium" ? "text-amber-500" : "text-blue-500"}`}>{s.impact}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Content ideas + FAQs */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Content ideas */}
+                  {(aiSeoReport.contentIdeas ?? []).length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 p-5">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />Content Ideas</p>
+                      <div className="space-y-3">
+                        {aiSeoReport.contentIdeas.map((idea, i) => (
+                          <div key={i} className="p-3 rounded-lg border border-gray-100 bg-gray-50">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-bold text-gray-700">{idea.topic}</span>
+                              <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">{idea.format}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {(idea.keywords ?? []).map((kw, j) => (
+                                <span key={j} className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded">{kw}</span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* FAQs */}
+                  {(aiSeoReport.faqs ?? []).length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 p-5">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5"><Lightbulb className="h-3.5 w-3.5" />AI-Generated FAQs</p>
+                      <div className="space-y-3">
+                        {aiSeoReport.faqs.map((faq, i) => (
+                          <div key={i} className="p-3 rounded-lg border border-gray-100">
+                            <p className="text-xs font-bold text-gray-700 mb-1">{faq.question}</p>
+                            <p className="text-xs text-gray-500 leading-relaxed">{faq.answer}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
       </div>
     </div>
   );
