@@ -104,12 +104,16 @@ function useSEO(path: string) {
   }, [path]);
 }
 
+const FULL_PAGE_ROUTES = ["/free-seo-audit", "/watermark-remover"];
+
 function Router() {
   const [location] = useLocation();
   useSEO(location);
 
+  const isFullPage = FULL_PAGE_ROUTES.some(r => location.startsWith(r));
+
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
+    <div className={isFullPage ? "" : "min-h-screen bg-background text-foreground pb-20"}>
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/faq" component={FAQPage} />
@@ -123,7 +127,7 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
 
-      {location !== "/not-found" && (
+      {!isFullPage && location !== "/not-found" && (
         <div className="container mx-auto px-4 max-w-4xl py-12">
           <PageReviews pagePath={location} />
         </div>
