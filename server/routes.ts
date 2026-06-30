@@ -1901,27 +1901,34 @@ ${Array.from(visited).map(page => {
     }
   });
 
-  // Audit history — list all snapshots for a domain
+  // Audit history — list all snapshots (optionally filtered by domain)
   app.get("/api/seo/audit-history", async (req, res) => {
     try {
       const { domain } = req.query;
-      if (!domain || typeof domain !== "string") {
-        return res.status(400).json({ error: "domain query param required" });
-      }
-      const rows = await db
+      const query = db
         .select({
           id: auditSnapshots.id,
           url: auditSnapshots.url,
           domain: auditSnapshots.domain,
           score: auditSnapshots.score,
           pageCount: auditSnapshots.pageCount,
+          pagesJson: auditSnapshots.pagesJson,
           createdAt: auditSnapshots.createdAt,
         })
         .from(auditSnapshots)
-        .where(eq(auditSnapshots.domain, domain))
         .orderBy(desc(auditSnapshots.createdAt))
         .limit(50);
-      res.json({ history: rows });
+
+      const rows = domain && typeof domain === "string"
+        ? await db.select({ id: auditSnapshots.id, url: auditSnapshots.url, domain: auditSnapshots.domain, score: auditSnapshots.score, pageCount: auditSnapshots.pageCount, pagesJson: auditSnapshots.pagesJson, createdAt: auditSnapshots.createdAt }).from(auditSnapshots).where(eq(auditSnapshots.domain, domain)).orderBy(desc(auditSnapshots.createdAt)).limit(50)
+        : await query;
+
+      const history = rows.map(r => {
+        let extra: any = {};
+        try { extra = JSON.parse(r.pagesJson); } catch {}
+        return { id: r.id, url: r.url, domain: r.domain, score: r.score, pageCount: r.pageCount, createdAt: r.createdAt, ...extra };
+      });
+      res.json({ history });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -2192,6 +2199,15 @@ Return ONLY valid JSON (no markdown) with EXACTLY this structure:
 
       auditReportCache.set(shareId, { report, expires: Date.now() + 86400000 });
       for (const [k, v] of auditReportCache.entries()) { if (v.expires < Date.now()) auditReportCache.delete(k); }
+
+      // Save summary to DB for history
+      try {
+        await db.insert(auditSnapshots).values({
+          url, domain, score: overallScore,
+          pageCount: pages.length,
+          pagesJson: JSON.stringify({ shareId, techScore, onPageScore, contentScore, perfScore, issueCount: uniqueIssues.length }),
+        });
+      } catch {}
 
       res.json(report);
     } catch (err: any) {

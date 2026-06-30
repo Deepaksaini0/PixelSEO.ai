@@ -12,7 +12,7 @@ import {
   Sparkles, BarChart3, Shield, PenTool, Star, ArrowRight, RefreshCw,
   ExternalLink, Copy, Mail, Calendar, Users, Link2, Gauge,
   Trophy, Clock, Lightbulb, BookOpen, Activity, Bell, ChevronRight,
-  FileSpreadsheet, LayoutList,
+  FileSpreadsheet, LayoutList, History, X, Trash2,
 } from "lucide-react";
 
 // ── Interfaces ─────────────────────────────────────────────────────────────────
@@ -61,6 +61,37 @@ interface AISEOReport {
   faqs: { question: string; answer: string }[];
   summary: string;
 }
+interface HistoryEntry {
+  id: string;          // unique key
+  url: string;
+  domain: string;
+  score: number;
+  pageCount: number;
+  techScore?: number;
+  onPageScore?: number;
+  contentScore?: number;
+  perfScore?: number;
+  issueCount?: number;
+  shareId?: string;
+  timestamp: string;   // ISO
+  source: "google" | "local" | "ai";
+  localReport?: LocalSEOReport;
+  aiSeoReport?: AISEOReport;
+}
+
+// ── localStorage history helpers ──────────────────────────────────────────────
+const LS_KEY = "seo_audit_history";
+function loadHistory(): HistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; }
+}
+function saveToHistory(entry: HistoryEntry) {
+  const list = loadHistory();
+  // deduplicate by id
+  const filtered = list.filter(e => e.id !== entry.id);
+  filtered.unshift(entry);
+  localStorage.setItem(LS_KEY, JSON.stringify(filtered.slice(0, 50)));
+}
+function clearHistory() { localStorage.removeItem(LS_KEY); }
 
 // ── Score ring (circular progress) ────────────────────────────────────────────
 function ScoreRing({ score, size = 100, label, big = false }: { score: number; size?: number; label?: string; big?: boolean }) {
@@ -223,6 +254,11 @@ export default function AISEOAudit() {
   const [aiSeoReport,  setAiSeoReport]  = useState<AISEOReport | null>(null);
   const [aiCopied,     setAiCopied]     = useState<string | null>(null);
 
+  // ── History state ──
+  const [showHistory,   setShowHistory]   = useState(false);
+  const [historyList,   setHistoryList]   = useState<HistoryEntry[]>(() => loadHistory());
+  const [historySearch, setHistorySearch] = useState("");
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
@@ -253,6 +289,17 @@ export default function AISEOAudit() {
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set("id", data.shareId);
       window.history.replaceState({}, "", newUrl.toString());
+      // save to history
+      const entry: HistoryEntry = {
+        id: data.shareId, url: data.url, domain: data.domain,
+        score: data.score, pageCount: data.pagesCrawled,
+        techScore: data.techScore, onPageScore: data.onPageScore,
+        contentScore: data.contentScore, perfScore: data.perfScore,
+        issueCount: data.issues?.length, shareId: data.shareId,
+        timestamp: data.timestamp, source: "google",
+      };
+      saveToHistory(entry);
+      setHistoryList(loadHistory());
     } catch (err: any) {
       toast({ title: "Audit failed", description: err.message, variant: "destructive" });
     } finally {
@@ -273,6 +320,13 @@ export default function AISEOAudit() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Local audit failed");
       setLocalReport(data);
+      const entry: HistoryEntry = {
+        id: `local-${Date.now()}`, url: normalized, domain: new URL(normalized).hostname,
+        score: data.overallScore, pageCount: 1, timestamp: new Date().toISOString(),
+        source: "local", localReport: data,
+      };
+      saveToHistory(entry);
+      setHistoryList(loadHistory());
     } catch (err: any) {
       toast({ title: "Local audit failed", description: err.message, variant: "destructive" });
     } finally { setLocalLoading(false); }
@@ -289,6 +343,13 @@ export default function AISEOAudit() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "AI SEO analysis failed");
       setAiSeoReport(data);
+      const entry: HistoryEntry = {
+        id: `ai-${Date.now()}`, url: normalized, domain: new URL(normalized).hostname,
+        score: data.aiScore, pageCount: 1, timestamp: new Date().toISOString(),
+        source: "ai", aiSeoReport: data,
+      };
+      saveToHistory(entry);
+      setHistoryList(loadHistory());
     } catch (err: any) {
       toast({ title: "AI SEO analysis failed", description: err.message, variant: "destructive" });
     } finally { setAiSeoLoading(false); }
@@ -369,6 +430,151 @@ export default function AISEOAudit() {
         </DialogContent>
       </Dialog>
 
+      {/* ── History Drawer ─────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showHistory && (
+          <>
+            {/* Backdrop */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
+              onClick={() => setShowHistory(false)} />
+            {/* Drawer */}
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col">
+
+              {/* Drawer header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center gap-2">
+                  <History className="h-4 w-4 text-indigo-500" />
+                  <span className="font-bold text-gray-800">Audit History</span>
+                  {historyList.length > 0 && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600">{historyList.length}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {historyList.length > 0 && (
+                    <button onClick={() => { clearHistory(); setHistoryList([]); }}
+                      className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors px-2 py-1 rounded hover:bg-red-50">
+                      <Trash2 className="h-3.5 w-3.5" /> Clear all
+                    </button>
+                  )}
+                  <button onClick={() => setShowHistory(false)} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors">
+                    <X className="h-4 w-4 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Search */}
+              {historyList.length > 0 && (
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                    <input value={historySearch} onChange={e => setHistorySearch(e.target.value)}
+                      placeholder="Search by domain or URL…"
+                      className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-100" />
+                  </div>
+                </div>
+              )}
+
+              {/* History list */}
+              <div className="flex-1 overflow-y-auto">
+                {historyList.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                      <History className="h-7 w-7 text-gray-300" />
+                    </div>
+                    <p className="font-semibold text-gray-500">No audits yet</p>
+                    <p className="text-xs text-gray-400 max-w-xs">Run a Google SEO, Local SEO, or AI SEO analysis — it will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {historyList
+                      .filter(e => !historySearch || e.domain.includes(historySearch.toLowerCase()) || e.url.toLowerCase().includes(historySearch.toLowerCase()))
+                      .map(entry => {
+                        const scoreColor = entry.score >= 80 ? "text-green-600 bg-green-50 border-green-200" : entry.score >= 60 ? "text-amber-600 bg-amber-50 border-amber-200" : "text-red-600 bg-red-50 border-red-200";
+                        const sourceBadge = entry.source === "google" ? "bg-green-100 text-green-700" : entry.source === "local" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700";
+                        const sourceLabel = entry.source === "google" ? "Google SEO" : entry.source === "local" ? "Local SEO" : "AI SEO";
+                        const fmtDate = (ts: string) => {
+                          const d = new Date(ts);
+                          return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + " · " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                        };
+                        return (
+                          <button key={entry.id} data-testid={`history-entry-${entry.id}`}
+                            onClick={() => {
+                              setShowHistory(false);
+                              if (entry.source === "google") {
+                                setSeoSubTab("google");
+                                if (entry.shareId) {
+                                  setLoading(true); setReport(null);
+                                  fetch(`/api/seo/audit-report/${entry.shareId}`)
+                                    .then(r => r.json())
+                                    .then(data => { if (!data.error) { setReport(data); setActiveTab("pages"); const u = new URL(window.location.href); u.searchParams.set("id", entry.shareId!); window.history.replaceState({}, "", u.toString()); } else toast({ title: "This report has expired. Please run a new audit.", variant: "destructive" }); })
+                                    .catch(() => toast({ title: "Could not load report", variant: "destructive" }))
+                                    .finally(() => setLoading(false));
+                                }
+                              } else if (entry.source === "local" && entry.localReport) {
+                                setSeoSubTab("local");
+                                setLocalReport(entry.localReport);
+                              } else if (entry.source === "ai" && entry.aiSeoReport) {
+                                setSeoSubTab("ai");
+                                setAiSeoReport(entry.aiSeoReport);
+                              }
+                            }}
+                            className="w-full text-left px-4 py-4 hover:bg-gray-50 transition-colors group">
+                            <div className="flex items-start gap-3">
+                              {/* Score badge */}
+                              <div className={`shrink-0 w-10 h-10 rounded-full border flex items-center justify-center font-black text-sm ${scoreColor}`}>
+                                {entry.score}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                  <span className="font-semibold text-sm text-gray-800 truncate">{entry.domain}</span>
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${sourceBadge}`}>{sourceLabel}</span>
+                                </div>
+                                <p className="text-xs text-gray-400 truncate mb-1">{entry.url}</p>
+                                <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                                  <span><Clock className="h-3 w-3 inline mr-0.5" />{fmtDate(entry.timestamp)}</span>
+                                  {entry.pageCount > 1 && <span>{entry.pageCount} pages</span>}
+                                  {entry.issueCount !== undefined && <span className="text-red-400">{entry.issueCount} issues</span>}
+                                </div>
+                                {/* Mini score bars for Google audits */}
+                                {entry.source === "google" && entry.techScore !== undefined && (
+                                  <div className="grid grid-cols-4 gap-1 mt-2">
+                                    {[
+                                      { l: "Tech", v: entry.techScore },
+                                      { l: "On-Page", v: entry.onPageScore ?? 0 },
+                                      { l: "Content", v: entry.contentScore ?? 0 },
+                                      { l: "Perf", v: entry.perfScore ?? 0 },
+                                    ].map(({ l, v }) => (
+                                      <div key={l} className="text-center">
+                                        <div className="text-[9px] text-gray-400 mb-0.5">{l}</div>
+                                        <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                                          <div className={`h-full rounded-full ${v >= 80 ? "bg-green-400" : v >= 60 ? "bg-amber-400" : "bg-red-400"}`} style={{ width: `${v}%` }} />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-500 shrink-0 mt-1 transition-colors" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
+                <p className="text-xs text-gray-400 text-center">Last 50 audits stored locally · Google SEO reports expire after 24h</p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* ── Top nav bar ───────────────────────────────────────────────────────── */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
         {/* Breadcrumb + icons row */}
@@ -379,6 +585,16 @@ export default function AISEOAudit() {
             <span className="font-medium text-gray-700">Project</span>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setShowHistory(true)}
+              className="relative flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg px-2.5 py-1.5 transition-colors border border-gray-200"
+              data-testid="button-history">
+              <History className="h-3.5 w-3.5 text-indigo-500" /> History
+              {historyList.length > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-indigo-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {historyList.length}
+                </span>
+              )}
+            </button>
             <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><Bell className="h-4 w-4 text-gray-500" /></button>
             <button className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg px-2.5 py-1.5 transition-colors border border-gray-200">
               <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Free Tools <ChevronDown className="h-3 w-3" />
