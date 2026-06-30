@@ -2216,6 +2216,118 @@ Return ONLY valid JSON (no markdown) with EXACTLY this structure:
     }
   });
 
+  // ── AI SEO Content Optimizer ───────────────────────────────────────────────
+  app.post("/api/seo/ai-seo", async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url || typeof url !== "string") return res.status(400).json({ error: "URL required" });
+      try { new URL(url); } catch { return res.status(400).json({ error: "Invalid URL format" }); }
+
+      // Fetch page to extract current title + meta
+      let currentTitle = "";
+      let currentMeta  = "";
+      let bodySnippet  = "";
+      try {
+        const r = await axios.get(url, { timeout: 10000, headers: { "User-Agent": "SEOAuditBot/1.0" } });
+        const $ = cheerio.load(r.data);
+        currentTitle = $("title").text().trim();
+        currentMeta  = $('meta[name="description"]').attr("content")?.trim() || "";
+        bodySnippet  = $("body").text().replace(/\s+/g, " ").trim().slice(0, 1500);
+      } catch {}
+
+      const prompt = `You are an expert SEO strategist. Analyse the following website and return a JSON object ONLY (no markdown, no explanation).
+
+URL: ${url}
+Current title: "${currentTitle}"
+Current meta description: "${currentMeta}"
+Page text snippet: "${bodySnippet}"
+
+Return ONLY this JSON (all fields required):
+{
+  "title": "Optimised title tag under 60 chars with primary keyword",
+  "description": "Optimised meta description 140-155 chars with CTA",
+  "keywords": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8"],
+  "schemaType": "One of: Article, LocalBusiness, Product, FAQPage, WebSite, Organization, Service",
+  "contentScore": 72,
+  "readabilityScore": 68,
+  "aiScore": 70,
+  "summary": "2-3 sentence executive summary of the site's SEO health and biggest opportunity.",
+  "suggestions": [
+    {"type":"Title Tag","current":"current value or None","recommended":"recommended value","impact":"High — improved click-through rate"},
+    {"type":"Meta Description","current":"current value or None","recommended":"recommended value","impact":"Medium — better SERP preview"},
+    {"type":"Schema Markup","current":"Not implemented","recommended":"Add ${"{schemaType}"} schema","impact":"High — enables rich results"},
+    {"type":"Content Depth","current":"Estimated current state","recommended":"Actionable improvement","impact":"Medium — topical authority"}
+  ],
+  "contentIdeas": [
+    {"topic":"Blog post topic idea 1","format":"How-to guide","keywords":["kw1","kw2"]},
+    {"topic":"Blog post topic idea 2","format":"Listicle","keywords":["kw3","kw4"]},
+    {"topic":"Blog post topic idea 3","format":"Case study","keywords":["kw5","kw6"]}
+  ],
+  "faqs": [
+    {"question":"Common question users have about this business?","answer":"Clear, concise answer optimised for featured snippets."},
+    {"question":"Second common question?","answer":"Answer with relevant details."},
+    {"question":"Third common question?","answer":"Answer addressing user intent."}
+  ]
+}`;
+
+      let result: any = {};
+      try {
+        const resp = await openai.chat.completions.create({
+          model: "gpt-4.1",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.3,
+          max_tokens: 1200,
+        });
+        const raw = resp.choices[0].message.content?.trim() || "{}";
+        result = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      } catch {
+        // Fallback if AI fails
+        result = {
+          title: currentTitle ? currentTitle.slice(0, 60) : "Add a keyword-rich title under 60 characters",
+          description: currentMeta ? currentMeta.slice(0, 155) : "Add a compelling meta description under 160 characters.",
+          keywords: ["website", "services", "online", "professional", "best", "affordable", "quality", "expert"],
+          schemaType: "WebSite",
+          contentScore: 55,
+          readabilityScore: 60,
+          aiScore: 55,
+          summary: "AI analysis temporarily unavailable. Please check your OpenAI API key and try again.",
+          suggestions: [
+            { type: "Title Tag", current: currentTitle || "None", recommended: "Add primary keyword near the start of your title", impact: "High — directly impacts SERP rankings" },
+            { type: "Meta Description", current: currentMeta || "None", recommended: "Write a 150-160 char description with a call-to-action", impact: "Medium — improves click-through rate" },
+          ],
+          contentIdeas: [
+            { topic: "How to choose the right service provider", format: "How-to guide", keywords: ["tips", "guide"] },
+            { topic: "Top benefits of working with professionals", format: "Listicle", keywords: ["benefits", "professional"] },
+          ],
+          faqs: [
+            { question: "What services do you offer?", answer: "Add a comprehensive answer describing your main services." },
+            { question: "How can I get started?", answer: "Describe your onboarding process here." },
+          ],
+        };
+      }
+
+      res.json({
+        url,
+        currentTitle,
+        currentMeta,
+        title:           result.title        || "",
+        description:     result.description  || "",
+        keywords:        Array.isArray(result.keywords) ? result.keywords : [],
+        schemaType:      result.schemaType   || "WebSite",
+        contentScore:    Number(result.contentScore)    || 50,
+        readabilityScore:Number(result.readabilityScore)|| 50,
+        aiScore:         Number(result.aiScore)         || 50,
+        summary:         result.summary      || "",
+        suggestions:     Array.isArray(result.suggestions)   ? result.suggestions   : [],
+        contentIdeas:    Array.isArray(result.contentIdeas)  ? result.contentIdeas  : [],
+        faqs:            Array.isArray(result.faqs)          ? result.faqs          : [],
+      });
+    } catch (err: any) {
+      console.error("AI SEO error:", err);
+      res.status(500).json({ error: "AI SEO analysis failed: " + err.message });
+    }
+  });
+
   // Cleanup task: Remove files older than 30 minutes
   const CLEANUP_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
   const MAX_AGE = 30 * 60 * 1000; // 30 minutes
