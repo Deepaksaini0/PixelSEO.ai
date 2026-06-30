@@ -284,7 +284,17 @@ const LOAD_STEPS = [
   "Running AI analysis & roadmap…", "Generating your report…",
 ];
 
-const NAV_TABS = ["SEO", "Ads", "Social", "Email", "CRM", "Reputation", "Tasks", "Reports", "Integrations"];
+const NAV_TABS = [
+  { id: "SEO",          icon: "🔍" },
+  { id: "Ads",          icon: "📢" },
+  { id: "Social",       icon: "📱" },
+  { id: "Email",        icon: "📧" },
+  { id: "CRM",          icon: "👥" },
+  { id: "Reputation",   icon: "⭐" },
+  { id: "Tasks",        icon: "✅" },
+  { id: "Reports",      icon: "📊" },
+  { id: "Integrations", icon: "🔌" },
+];
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function AISEOAudit() {
@@ -301,6 +311,7 @@ export default function AISEOAudit() {
   const [copied,   setCopied]   = useState(false);
   const [searchQ,  setSearchQ]  = useState("");
   const [seoSubTab, setSeoSubTab] = useState<"google" | "local" | "ai">("google");
+  const [activeNavTab, setActiveNavTab] = useState("SEO");
 
   // ── Local SEO state ──
   const [localUrl,      setLocalUrl]      = useState("");
@@ -668,34 +679,36 @@ export default function AISEOAudit() {
         {/* Main tab row */}
         <div className="flex items-center gap-0 px-2 overflow-x-auto scrollbar-none">
           {NAV_TABS.map(tab => (
-            <button key={tab}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${tab === "SEO" ? "border-green-500 text-green-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200"}`}>
-              {tab === "SEO" && <Search className="h-3.5 w-3.5" />}
-              {tab}
+            <button key={tab.id} onClick={() => setActiveNavTab(tab.id)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeNavTab === tab.id ? "border-green-500 text-green-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200"}`}>
+              <span className="text-sm">{tab.icon}</span>
+              {tab.id}
             </button>
           ))}
         </div>
       </header>
 
-      {/* ── SEO sub-tabs ─────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200 px-6">
-        <div className="flex items-center gap-1">
-          {([
-            { id: "google", label: "Google SEO", dot: "bg-green-500",  activeBorder: "border-green-500",  activeText: "text-green-700"  },
-            { id: "local",  label: "Local SEO",  dot: "bg-orange-500", activeBorder: "border-orange-500", activeText: "text-orange-700" },
-            { id: "ai",     label: "AI SEO",     dot: "bg-blue-500",   activeBorder: "border-blue-500",   activeText: "text-blue-700"   },
-          ] as const).map(t => (
-            <button key={t.id} onClick={() => setSeoSubTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold border-b-2 transition-all ${seoSubTab === t.id ? `${t.activeBorder} ${t.activeText}` : "border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300"}`}>
-              <span className={`h-2 w-2 rounded-full ${t.dot}`} />
-              {t.label}
-            </button>
-          ))}
+      {/* ── SEO sub-tabs (only when SEO tab active) ──────────────────────────── */}
+      {activeNavTab === "SEO" && (
+        <div className="bg-white border-b border-gray-200 px-6">
+          <div className="flex items-center gap-1">
+            {([
+              { id: "google", label: "Google SEO", dot: "bg-green-500",  activeBorder: "border-green-500",  activeText: "text-green-700"  },
+              { id: "local",  label: "Local SEO",  dot: "bg-orange-500", activeBorder: "border-orange-500", activeText: "text-orange-700" },
+              { id: "ai",     label: "AI SEO",     dot: "bg-blue-500",   activeBorder: "border-blue-500",   activeText: "text-blue-700"   },
+            ] as const).map(t => (
+              <button key={t.id} onClick={() => setSeoSubTab(t.id)}
+                className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold border-b-2 transition-all ${seoSubTab === t.id ? `${t.activeBorder} ${t.activeText}` : "border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300"}`}>
+                <span className={`h-2 w-2 rounded-full ${t.dot}`} />
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Content area ─────────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      {activeNavTab === "SEO" && <div className="max-w-7xl mx-auto px-4 py-6">
 
         {/* ── No report: hero input ─────────────────────────────────────────── */}
         {seoSubTab === "google" && !report && !loading && (
@@ -1635,7 +1648,505 @@ export default function AISEOAudit() {
           </motion.div>
         )}
 
-      </div>
+      </div>}
+
+      {/* ── Ads Tab ───────────────────────────────────────────────────────────── */}
+      {activeNavTab === "Ads" && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-black text-gray-800">Ads & PPC Dashboard</h2>
+            <p className="text-sm text-gray-500 mt-1">Analyse your landing pages for ad quality, keyword alignment, and conversion readiness.</p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4 mb-6">
+            {[
+              { label: "Quality Score Factors", val: "7/10",  color: "text-amber-600",  bg: "bg-amber-50",  desc: "Landing page relevance, CTR history, ad copy alignment" },
+              { label: "Landing Page Speed",   val: "~2.8s", color: "text-red-500",    bg: "bg-red-50",    desc: "Slow pages lower Quality Score & increase cost-per-click" },
+              { label: "Ad Relevance",          val: "Good",  color: "text-green-600",  bg: "bg-green-50",  desc: "Content aligns with typical search intent for your niche" },
+            ].map(s => (
+              <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5">
+                <p className="text-xs text-gray-500 font-medium mb-1">{s.label}</p>
+                <p className={`text-2xl font-black ${s.color} mb-1`}>{s.val}</p>
+                <p className="text-xs text-gray-400">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4 mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3 flex items-center gap-2">📢 Suggested Ad Keywords</h3>
+              <div className="space-y-2">
+                {[
+                  { kw: "best SEO tools online",          intent: "Commercial", cpc: "$4.20" },
+                  { kw: "free website SEO audit",         intent: "Informational", cpc: "$2.80" },
+                  { kw: "hire SEO agency",                intent: "Transactional", cpc: "$8.50" },
+                  { kw: "SEO checker free",               intent: "Informational", cpc: "$1.90" },
+                  { kw: "increase Google rankings fast",  intent: "Commercial", cpc: "$5.10" },
+                ].map(k => (
+                  <div key={k.kw} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <span className="text-sm text-gray-700">{k.kw}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${k.intent === "Transactional" ? "bg-green-50 text-green-700" : k.intent === "Commercial" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"}`}>{k.intent}</span>
+                      <span className="text-xs font-mono text-gray-500">{k.cpc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3">📋 Landing Page Checklist</h3>
+              <div className="space-y-2.5">
+                {[
+                  { item: "Clear headline matching ad copy",    done: true },
+                  { item: "Single strong call-to-action",       done: true },
+                  { item: "Page loads under 2 seconds",         done: false },
+                  { item: "Trust signals (reviews, logos)",     done: false },
+                  { item: "Mobile-responsive layout",           done: true },
+                  { item: "Privacy policy linked",              done: true },
+                  { item: "Conversion tracking installed",      done: false },
+                  { item: "A/B test variant running",           done: false },
+                ].map(c => (
+                  <div key={c.item} className="flex items-center gap-2.5">
+                    <span className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${c.done ? "bg-green-500" : "bg-gray-200"}`}>
+                      {c.done && <span className="text-white text-[8px] font-bold">✓</span>}
+                    </span>
+                    <span className={`text-sm ${c.done ? "text-gray-700" : "text-gray-400"}`}>{c.item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5">
+            <h3 className="font-bold text-sm text-indigo-800 mb-2">💡 Ad Copy Tips</h3>
+            <ul className="text-sm text-indigo-700 space-y-1.5 list-disc list-inside">
+              <li>Include primary keyword in both headline and description</li>
+              <li>Use numbers and specifics ("Save 40%", "Setup in 5 minutes")</li>
+              <li>Add callout extensions for free trial, 24/7 support, money-back guarantee</li>
+              <li>Match landing page headline exactly to ad headline for Quality Score</li>
+              <li>Use responsive search ads with at least 8 headlines and 4 descriptions</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* ── Social Tab ───────────────────────────────────────────────────────── */}
+      {activeNavTab === "Social" && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-black text-gray-800">Social Media Presence</h2>
+            <p className="text-sm text-gray-500 mt-1">Check your social signals, Open Graph tags, and platform presence for better shareability.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {[
+              { platform: "Facebook",  icon: "🔵", handle: "@yourbrand", followers: "—",  status: "Verify" },
+              { platform: "Instagram", icon: "🟣", handle: "@yourbrand", followers: "—",  status: "Verify" },
+              { platform: "LinkedIn",  icon: "🔷", handle: "Company Page",followers: "—",  status: "Verify" },
+              { platform: "X / Twitter",icon: "⬛", handle: "@yourbrand", followers: "—", status: "Verify" },
+            ].map(p => (
+              <div key={p.platform} className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+                <div className="text-2xl mb-1">{p.icon}</div>
+                <p className="text-sm font-bold text-gray-800">{p.platform}</p>
+                <p className="text-xs text-gray-400 mb-2">{p.handle}</p>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">{p.status}</span>
+              </div>
+            ))}
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4 mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3">🔗 Open Graph Signals</h3>
+              <div className="space-y-2.5">
+                {[
+                  { tag: "og:title",       status: report ? "Present" : "Unknown", ok: !!report },
+                  { tag: "og:description", status: report ? "Present" : "Unknown", ok: !!report },
+                  { tag: "og:image",       status: "Needs check",                  ok: false },
+                  { tag: "og:url",         status: "Needs check",                  ok: false },
+                  { tag: "twitter:card",   status: "Needs check",                  ok: false },
+                  { tag: "twitter:image",  status: "Needs check",                  ok: false },
+                ].map(t => (
+                  <div key={t.tag} className="flex items-center justify-between">
+                    <span className="text-xs font-mono text-gray-600">{t.tag}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${t.ok ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>{t.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3">📅 Content Calendar Ideas</h3>
+              <div className="space-y-2">
+                {[
+                  { day: "Mon", idea: "Share a client success story or case study" },
+                  { day: "Tue", idea: "Educational tip related to your niche" },
+                  { day: "Wed", idea: "Behind-the-scenes team or process photo" },
+                  { day: "Thu", idea: "Curated industry news or trend commentary" },
+                  { day: "Fri", idea: "Promotional post with soft CTA" },
+                  { day: "Sat", idea: "User-generated content or testimonial" },
+                ].map(c => (
+                  <div key={c.day} className="flex gap-3 items-start">
+                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 rounded px-1.5 py-0.5 w-8 text-center shrink-0">{c.day}</span>
+                    <span className="text-xs text-gray-600">{c.idea}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="bg-violet-50 border border-violet-100 rounded-xl p-5">
+            <h3 className="font-bold text-sm text-violet-800 mb-2">💡 Social SEO Tips</h3>
+            <ul className="text-sm text-violet-700 space-y-1.5 list-disc list-inside">
+              <li>Run your site URL through Google's Rich Results Test to preview social cards</li>
+              <li>Always include an og:image of at least 1200×630px for best display</li>
+              <li>Consistent NAP (name, address, phone) across all social profiles helps Local SEO</li>
+              <li>Social signals (shares, mentions) indirectly influence domain authority</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* ── Email Tab ────────────────────────────────────────────────────────── */}
+      {activeNavTab === "Email" && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-black text-gray-800">Email Marketing</h2>
+            <p className="text-sm text-gray-500 mt-1">Email deliverability health, DNS authentication records, and list-building tips.</p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4 mb-6">
+            {[
+              { label: "SPF Record",    val: "Check DNS", status: "warning", desc: "Prevent spoofing — add v=spf1 include:... ~all to DNS" },
+              { label: "DKIM Record",   val: "Check DNS", status: "warning", desc: "Email signing — required by Gmail & Yahoo for bulk senders" },
+              { label: "DMARC Policy",  val: "Check DNS", status: "warning", desc: "Prevents phishing — add _dmarc TXT record to your domain" },
+            ].map(s => (
+              <div key={s.label} className="bg-white rounded-xl border border-amber-200 p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold text-gray-500">{s.label}</p>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Verify</span>
+                </div>
+                <p className="text-lg font-black text-amber-600 mb-1">{s.val}</p>
+                <p className="text-xs text-gray-400">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4 mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3">📋 Email Capture Checklist</h3>
+              <div className="space-y-2.5">
+                {[
+                  { item: "Email signup form above the fold",     done: false },
+                  { item: "Lead magnet (ebook, checklist, tool)", done: false },
+                  { item: "Exit-intent popup configured",         done: false },
+                  { item: "Double opt-in confirmation enabled",   done: true  },
+                  { item: "Unsubscribe link in every email",      done: true  },
+                  { item: "GDPR consent checkbox present",        done: false },
+                  { item: "Welcome email sequence set up",        done: false },
+                  { item: "Email list segmented by interest",     done: false },
+                ].map(c => (
+                  <div key={c.item} className="flex items-center gap-2.5">
+                    <span className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${c.done ? "bg-green-500" : "bg-gray-200"}`}>
+                      {c.done && <span className="text-white text-[8px] font-bold">✓</span>}
+                    </span>
+                    <span className={`text-sm ${c.done ? "text-gray-700" : "text-gray-400"}`}>{c.item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3">📧 Email Sequence Blueprint</h3>
+              <div className="space-y-3">
+                {[
+                  { day: "Day 0",  subject: "Welcome — here's what to expect",           type: "Welcome" },
+                  { day: "Day 2",  subject: "Your free resource / first value delivery",  type: "Value" },
+                  { day: "Day 5",  subject: "Common mistake your audience makes",         type: "Education" },
+                  { day: "Day 8",  subject: "Case study — how we helped [Client]",        type: "Social Proof" },
+                  { day: "Day 12", subject: "Limited offer / main CTA",                   type: "Promo" },
+                  { day: "Day 15", subject: "FAQ — answering your top questions",         type: "Nurture" },
+                ].map(e => (
+                  <div key={e.day} className="flex gap-3 items-start border-b border-gray-50 pb-2 last:border-0">
+                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 rounded px-1.5 py-0.5 shrink-0 w-12 text-center">{e.day}</span>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700">{e.subject}</p>
+                      <span className="text-[10px] text-gray-400">{e.type}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CRM Tab ──────────────────────────────────────────────────────────── */}
+      {activeNavTab === "CRM" && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-black text-gray-800">CRM & Lead Management</h2>
+            <p className="text-sm text-gray-500 mt-1">Track, qualify and convert leads from your SEO traffic into customers.</p>
+          </div>
+          <div className="grid sm:grid-cols-4 gap-4 mb-6">
+            {[
+              { label: "Monthly Visitors",  val: "—",   icon: "👥", color: "text-blue-600",   bg: "bg-blue-50" },
+              { label: "Est. Leads (2%)",   val: "—",   icon: "📥", color: "text-green-600",  bg: "bg-green-50" },
+              { label: "Avg. Close Rate",   val: "~12%",icon: "🤝", color: "text-violet-600", bg: "bg-violet-50" },
+              { label: "Revenue Potential", val: "—",   icon: "💰", color: "text-amber-600",  bg: "bg-amber-50" },
+            ].map(s => (
+              <div key={s.label} className={`${s.bg} rounded-xl border border-gray-200 p-5`}>
+                <div className="text-2xl mb-2">{s.icon}</div>
+                <p className={`text-2xl font-black ${s.color}`}>{s.val}</p>
+                <p className="text-xs text-gray-500 mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4 mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3">🎯 Lead Capture Improvements</h3>
+              <div className="space-y-3">
+                {[
+                  { action: "Add live chat widget to capture warm leads instantly",       impact: "High" },
+                  { action: "Create a free tool or quiz as a lead magnet",                impact: "High" },
+                  { action: "Add contact form to every service/blog page",                impact: "Medium" },
+                  { action: "Set up retargeting pixel (Google/Meta) for returning visitors", impact: "High" },
+                  { action: "A/B test CTA button colour and copy",                        impact: "Medium" },
+                  { action: "Add social proof near every CTA (reviews, logos)",           impact: "Medium" },
+                ].map(a => (
+                  <div key={a.action} className="flex gap-3 items-start">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${a.impact === "High" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"}`}>{a.impact}</span>
+                    <span className="text-xs text-gray-600">{a.action}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3">🔗 Recommended CRM Integrations</h3>
+              <div className="space-y-3">
+                {[
+                  { name: "HubSpot CRM",      desc: "Free CRM with email, pipeline & contact management",   badge: "Free" },
+                  { name: "Zoho CRM",          desc: "Affordable full-featured CRM with automation",          badge: "Freemium" },
+                  { name: "Pipedrive",         desc: "Sales-focused pipeline CRM, great for agencies",        badge: "Paid" },
+                  { name: "Google Contacts",   desc: "Simple contacts sync for small teams",                  badge: "Free" },
+                  { name: "Notion CRM",        desc: "Flexible database-style CRM for solo operators",        badge: "Free" },
+                ].map(c => (
+                  <div key={c.name} className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-bold text-gray-700">{c.name}</p>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${c.badge === "Free" ? "bg-green-50 text-green-700" : c.badge === "Freemium" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"}`}>{c.badge}</span>
+                      </div>
+                      <p className="text-[11px] text-gray-400">{c.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reputation Tab ───────────────────────────────────────────────────── */}
+      {activeNavTab === "Reputation" && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-black text-gray-800">Online Reputation</h2>
+            <p className="text-sm text-gray-500 mt-1">Monitor reviews, respond to feedback, and build trust signals across the web.</p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4 mb-6">
+            {[
+              { platform: "Google Reviews",    rating: "—", count: "—", icon: "🔍", color: "text-blue-600",  tip: "Run Google My Business audit in Local SEO tab" },
+              { platform: "Trustpilot",        rating: "—", count: "—", icon: "⭐", color: "text-green-600", tip: "Claim your free Trustpilot company profile" },
+              { platform: "Facebook Reviews",  rating: "—", count: "—", icon: "🔵", color: "text-blue-500",  tip: "Enable Facebook reviews on your business page" },
+            ].map(r => (
+              <div key={r.platform} className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">{r.icon}</span>
+                  <p className="text-sm font-bold text-gray-700">{r.platform}</p>
+                </div>
+                <p className={`text-2xl font-black ${r.color} mb-1`}>{r.rating} <span className="text-base font-normal text-gray-400">/ 5.0</span></p>
+                <p className="text-xs text-gray-400 mb-2">{r.count} reviews</p>
+                <p className="text-xs text-gray-400 italic">{r.tip}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4 mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3">⭐ Review Generation Strategy</h3>
+              <div className="space-y-3">
+                {[
+                  { step: "1", action: "Send review request email 3 days after service delivery" },
+                  { step: "2", action: "Add Google Review QR code to invoices and receipts" },
+                  { step: "3", action: "Include review link in email signature" },
+                  { step: "4", action: "Train team to ask verbally at end of every interaction" },
+                  { step: "5", action: "Respond to every review within 24 hours (positive & negative)" },
+                  { step: "6", action: "Display best reviews prominently on homepage with schema markup" },
+                ].map(s => (
+                  <div key={s.step} className="flex gap-3 items-start">
+                    <span className="h-5 w-5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black flex items-center justify-center shrink-0">{s.step}</span>
+                    <span className="text-xs text-gray-600">{s.action}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-bold text-sm text-gray-800 mb-3">🛡️ Review Schema Checklist</h3>
+              <div className="space-y-2.5">
+                {[
+                  { item: "AggregateRating schema on homepage",         done: false },
+                  { item: "Review schema on product/service pages",     done: false },
+                  { item: "FAQ schema for common questions",            done: false },
+                  { item: "LocalBusiness schema with address",          done: false },
+                  { item: "Google My Business profile claimed",         done: false },
+                  { item: "Negative review response plan in place",     done: false },
+                  { item: "Review monitoring alerts set up",            done: false },
+                ].map(c => (
+                  <div key={c.item} className="flex items-center gap-2.5">
+                    <span className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${c.done ? "bg-green-500" : "bg-gray-200"}`}>
+                      {c.done && <span className="text-white text-[8px] font-bold">✓</span>}
+                    </span>
+                    <span className={`text-sm ${c.done ? "text-gray-700" : "text-gray-400"}`}>{c.item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tasks Tab ────────────────────────────────────────────────────────── */}
+      {activeNavTab === "Tasks" && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-black text-gray-800">SEO Task List</h2>
+            <p className="text-sm text-gray-500 mt-1">{report ? `${report.issues.length} tasks generated from your last audit of ${report.domain}` : "Run a Google SEO audit to auto-generate your personalised task list."}</p>
+          </div>
+          {report ? (
+            <div className="space-y-3">
+              {report.issues.map((issue, i) => (
+                <div key={issue.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3">
+                  <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white text-[10px] font-black ${issue.severity === "critical" ? "bg-red-500" : issue.severity === "warning" ? "bg-amber-500" : "bg-blue-400"}`}>{i + 1}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${issue.severity === "critical" ? "bg-red-50 text-red-600 border-red-200" : issue.severity === "warning" ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-blue-50 text-blue-600 border-blue-200"}`}>{issue.severity === "info" ? "Notice" : issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1)}</span>
+                      <span className="text-[10px] text-gray-400 border border-gray-200 px-2 py-0.5 rounded-full">{issue.category}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800 mb-1">{issue.issue}</p>
+                    <p className="text-xs text-gray-500">{issue.fix}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-400 mb-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">⚠️ No audit results yet. Run a Google SEO audit first, then come back here to see your personalised tasks.</p>
+              {[
+                { priority: "High",   category: "Technical",  task: "Verify HTTPS & SSL certificate is valid and auto-renewing" },
+                { priority: "High",   category: "On-Page",    task: "Audit title tags — all pages need unique titles under 60 chars" },
+                { priority: "High",   category: "On-Page",    task: "Add missing meta descriptions (150–160 chars) on all key pages" },
+                { priority: "Medium", category: "Technical",  task: "Submit XML sitemap to Google Search Console" },
+                { priority: "Medium", category: "Content",    task: "Add author bios and publish dates to blog posts (EEAT)" },
+                { priority: "Medium", category: "Technical",  task: "Fix broken internal links flagged in crawl" },
+                { priority: "Low",    category: "On-Page",    task: "Add alt text to all images missing descriptions" },
+                { priority: "Low",    category: "Technical",  task: "Implement structured data (schema.org) for key page types" },
+              ].map((t, i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3">
+                  <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white text-[10px] font-black ${t.priority === "High" ? "bg-red-500" : t.priority === "Medium" ? "bg-amber-500" : "bg-blue-400"}`}>{i + 1}</div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${t.priority === "High" ? "bg-red-50 text-red-600 border-red-200" : t.priority === "Medium" ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-blue-50 text-blue-600 border-blue-200"}`}>{t.priority}</span>
+                      <span className="text-[10px] text-gray-400 border border-gray-200 px-2 py-0.5 rounded-full">{t.category}</span>
+                    </div>
+                    <p className="text-sm text-gray-700">{t.task}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Reports Tab ──────────────────────────────────────────────────────── */}
+      {activeNavTab === "Reports" && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-black text-gray-800">Reports</h2>
+            <p className="text-sm text-gray-500 mt-1">View, download and share your SEO audit reports.</p>
+          </div>
+          {historyList.length > 0 ? (
+            <div className="space-y-3">
+              {historyList.map(entry => (
+                <div key={entry.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
+                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${entry.source === "google" ? "bg-green-50" : entry.source === "local" ? "bg-orange-50" : "bg-blue-50"}`}>
+                    <span className="text-lg">{entry.source === "google" ? "🔍" : entry.source === "local" ? "📍" : "🤖"}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-800 truncate">{entry.domain}</p>
+                    <p className="text-xs text-gray-400">{entry.source === "google" ? "Google SEO Audit" : entry.source === "local" ? "Local SEO Audit" : "AI SEO Analysis"} · {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-center">
+                      <p className={`text-xl font-black ${entry.score >= 80 ? "text-green-600" : entry.score >= 60 ? "text-amber-600" : "text-red-500"}`}>{entry.score}</p>
+                      <p className="text-[9px] text-gray-400">Score</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (entry.source === "google" && entry.shareId) {
+                          fetch(`/api/seo/audit-report/${entry.shareId}`).then(r => r.json()).then(d => {
+                            const html = buildReportHtml(d);
+                            const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+                            a.download = `seo-report-${entry.domain}.html`; a.click();
+                          }).catch(() => toast({ title: "Report expired", description: "Google SEO reports expire after 24h.", variant: "destructive" }));
+                        } else {
+                          toast({ title: "Export unavailable", description: "Only Google SEO reports support HTML export.", variant: "destructive" });
+                        }
+                      }}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600">
+                      Export
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
+              <p className="text-4xl mb-3">📊</p>
+              <p className="text-sm font-bold text-gray-600 mb-1">No reports yet</p>
+              <p className="text-xs text-gray-400">Run a Google, Local or AI SEO audit — reports save automatically.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Integrations Tab ─────────────────────────────────────────────────── */}
+      {activeNavTab === "Integrations" && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-black text-gray-800">Integrations</h2>
+            <p className="text-sm text-gray-500 mt-1">Connect your SEO tools and data sources for deeper insights.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { name: "Google Search Console", icon: "🔍", desc: "Connect GSC to see real impressions, clicks, average position, and crawl errors for every page.", status: "Connect", color: "border-blue-200 bg-blue-50/30", badge: "Recommended" },
+              { name: "Google Analytics 4",    icon: "📈", desc: "Import GA4 traffic data — sessions, bounce rate, conversions — alongside your SEO scores.", status: "Connect", color: "border-orange-200 bg-orange-50/30", badge: "Recommended" },
+              { name: "Google My Business",    icon: "📍", desc: "Sync your GMB profile to monitor Local SEO performance, review count, and profile completeness.", status: "Connect", color: "border-green-200 bg-green-50/30", badge: "Local SEO" },
+              { name: "Semrush",               icon: "🚀", desc: "Pull keyword rankings, backlink data, and competitor insights directly from Semrush.", status: "Coming Soon", color: "border-gray-200 bg-gray-50", badge: "Soon" },
+              { name: "Ahrefs",                icon: "🔗", desc: "Import your Ahrefs backlink profile, domain rating, and organic keyword data.", status: "Coming Soon", color: "border-gray-200 bg-gray-50", badge: "Soon" },
+              { name: "Screaming Frog",        icon: "🐸", desc: "Upload a Screaming Frog crawl export to enrich your technical SEO audit results.", status: "Coming Soon", color: "border-gray-200 bg-gray-50", badge: "Soon" },
+            ].map(intg => (
+              <div key={intg.name} className={`rounded-xl border p-5 ${intg.color}`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{intg.icon}</span>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">{intg.name}</p>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${intg.badge === "Recommended" ? "bg-indigo-50 text-indigo-700" : intg.badge === "Local SEO" ? "bg-orange-50 text-orange-700" : "bg-gray-100 text-gray-500"}`}>{intg.badge}</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mb-4 leading-relaxed">{intg.desc}</p>
+                <button
+                  disabled={intg.status === "Coming Soon"}
+                  onClick={() => intg.status === "Connect" && toast({ title: `${intg.name}`, description: "Integration setup coming soon — enter your API key in Settings." })}
+                  className={`w-full text-xs font-bold py-2 rounded-lg transition-colors ${intg.status === "Connect" ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
+                  {intg.status}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
