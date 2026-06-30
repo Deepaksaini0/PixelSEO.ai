@@ -402,12 +402,12 @@ export default function AISEOAudit() {
       <div className="bg-white border-b border-gray-200 px-6">
         <div className="flex items-center gap-1">
           {([
-            { id: "google", label: "Google SEO", dot: "bg-green-500" },
-            { id: "local",  label: "Local SEO",  dot: "bg-orange-500" },
-            { id: "ai",     label: "AI SEO",     dot: "bg-blue-500" },
+            { id: "google", label: "Google SEO", dot: "bg-green-500",  activeBorder: "border-green-500",  activeText: "text-green-700"  },
+            { id: "local",  label: "Local SEO",  dot: "bg-orange-500", activeBorder: "border-orange-500", activeText: "text-orange-700" },
+            { id: "ai",     label: "AI SEO",     dot: "bg-blue-500",   activeBorder: "border-blue-500",   activeText: "text-blue-700"   },
           ] as const).map(t => (
             <button key={t.id} onClick={() => setSeoSubTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold border-b-2 transition-all ${seoSubTab === t.id ? "border-green-500 text-gray-800" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold border-b-2 transition-all ${seoSubTab === t.id ? `${t.activeBorder} ${t.activeText}` : "border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300"}`}>
               <span className={`h-2 w-2 rounded-full ${t.dot}`} />
               {t.label}
             </button>
