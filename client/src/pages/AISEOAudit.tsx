@@ -125,39 +125,102 @@ function CWVBadge({ status }: { status: string }) {
   return <Badge className="bg-red-500/10 text-red-600 border-red-200 text-[10px]">Poor</Badge>;
 }
 
+// ── Issue definitions lookup ────────────────────────────────────────────────────
+const ISSUE_DEFINITIONS: { pattern: RegExp; definition: string }[] = [
+  { pattern: /render.?blocking|script.*block/i,        definition: "Render-blocking resources delay the browser from displaying your page. Scripts and stylesheets loaded in the <head> without async/defer force the browser to pause rendering until they fully download and execute, directly hurting Core Web Vitals (LCP & FID)." },
+  { pattern: /missing.*title|title.*missing|no title/i, definition: "The <title> tag is one of the most important on-page SEO elements. It tells search engines and users what your page is about, appears as the clickable headline in search results, and influences click-through rates." },
+  { pattern: /title.*long|long.*title|title.*chars/i,   definition: "Google truncates title tags longer than ~60 characters in search results. Overly long titles get cut off with an ellipsis, reducing click-through rates and potentially diluting keyword relevance." },
+  { pattern: /meta desc.*missing|missing.*meta desc/i,  definition: "The meta description is the short summary shown under your page title in search results. While not a direct ranking factor, a compelling meta description significantly improves click-through rates from Google." },
+  { pattern: /meta desc.*long|long.*meta desc|meta desc.*chars/i, definition: "Google truncates meta descriptions longer than ~160 characters. Text beyond this limit won't appear in search results, wasting your opportunity to convince searchers to click through to your page." },
+  { pattern: /missing.*h1|h1.*missing|no h1/i,          definition: "The H1 heading is the primary heading on your page. It signals to search engines the main topic of the page and helps establish content hierarchy. Missing H1s can confuse crawlers and weaken topical relevance." },
+  { pattern: /multiple.*h1|h1.*multiple/i,              definition: "Having more than one H1 tag confuses search engines about which heading represents the main topic. Best practice is one H1 per page that clearly describes the primary content." },
+  { pattern: /alt.*text|alt.*attr|image.*alt/i,         definition: "Alt text (alternative text) describes images for screen readers and search engines. Missing alt attributes mean Google cannot understand image content, missing out on image search traffic and harming accessibility." },
+  { pattern: /page.*size|size.*kb|large.*page/i,        definition: "Large page sizes increase load time, especially on mobile connections. Search engines use page speed as a ranking signal. Pages over 500KB typically have significantly higher bounce rates than lighter pages." },
+  { pattern: /https|ssl|http.*insecure/i,               definition: "HTTPS encrypts data between your server and visitors' browsers. Google uses HTTPS as a ranking signal since 2014. Non-HTTPS pages are flagged as 'Not Secure' in Chrome, causing users to leave before engaging." },
+  { pattern: /canonical/i,                              definition: "Canonical tags tell search engines which version of a page is the 'master' copy when similar content exists at multiple URLs. Without them, search engines may split ranking signals between duplicates, diluting your authority." },
+  { pattern: /robots\.txt/i,                            definition: "robots.txt instructs search engine crawlers which pages they can and cannot access. A missing or misconfigured robots.txt can result in important pages being blocked from indexing or low-value pages wasting crawl budget." },
+  { pattern: /sitemap/i,                                definition: "An XML sitemap lists all important URLs on your site, helping search engines discover and index your content efficiently. Sites without sitemaps may have pages that take much longer to be found and indexed by Google." },
+  { pattern: /structured.*data|schema|json.?ld/i,       definition: "Structured data (Schema markup) provides explicit context about your content to search engines. It enables rich results (star ratings, FAQs, breadcrumbs) in SERPs which significantly increase visibility and click-through rates." },
+  { pattern: /slow.*load|load.*slow|page.*speed/i,      definition: "Page loading speed is a confirmed Google ranking factor for both desktop and mobile. Slow pages have higher bounce rates, lower conversion rates, and rank lower than faster equivalents with similar content quality." },
+  { pattern: /duplicate.*content|content.*duplicate/i,  definition: "Duplicate content confuses search engines about which version to rank and can split link equity across multiple URLs. Google may exclude duplicated pages from its index entirely or show the wrong version in results." },
+  { pattern: /open graph|og:|social/i,                  definition: "Open Graph meta tags control how your pages appear when shared on social media (Facebook, LinkedIn, Twitter/X). Without them, social platforms generate unpredictable previews — often with wrong images and titles — reducing share engagement." },
+  { pattern: /viewport/i,                               definition: "The viewport meta tag instructs mobile browsers how to scale your page. Without it, mobile browsers render pages at desktop width and zoom them out, making text tiny and unreadable — directly hurting mobile UX and Google's mobile-first ranking." },
+  { pattern: /word.*count|thin.*content|content.*thin/i, definition: "Thin content pages have very little substantive text. Google's Helpful Content systems devalue pages with insufficient depth. Pages under 300 words rarely rank well for competitive queries unless they serve a very specific, clear purpose." },
+  { pattern: /author|eeat|expertise|trust/i,            definition: "Google's EEAT (Experience, Expertise, Authoritativeness, Trustworthiness) framework evaluates content quality signals. Missing author info, credentials, and trust signals can cause Google to rank your content lower, particularly for medical, financial, or legal topics." },
+  { pattern: /internal.*link|link.*internal/i,          definition: "Internal links distribute PageRank (link equity) across your site and help search engines discover and understand your content hierarchy. Poor internal linking means important pages get less authority and may rank lower than they should." },
+  { pattern: /broken.*link|link.*broken|404/i,          definition: "Broken links (leading to 404 errors) create a poor user experience and waste crawl budget. When search engines repeatedly encounter broken links, they may reduce crawl frequency and lower trust scores for your domain." },
+  { pattern: /redirect/i,                               definition: "Redirect chains (A→B→C) slow down page loading and dilute link equity with each hop. Google recommends resolving to the final destination in a single redirect. Chains longer than 3 hops are often ignored by crawlers." },
+  { pattern: /lcp|largest.*contentful/i,                definition: "Largest Contentful Paint (LCP) measures how long the largest visible element (image, heading, or block) takes to load. Google's Core Web Vitals threshold is under 2.5 seconds — pages exceeding this receive ranking penalties in mobile search." },
+  { pattern: /cls|layout.*shift|cumulative/i,           definition: "Cumulative Layout Shift (CLS) measures visual instability — elements jumping around as the page loads. A CLS score above 0.1 indicates pages that frustrate users and are penalised by Google's Core Web Vitals algorithm." },
+  { pattern: /inp|interaction.*paint/i,                 definition: "Interaction to Next Paint (INP) measures how quickly your page responds to user input (clicks, taps, key presses). Poor INP (above 200ms) signals slow JavaScript execution and is a Core Web Vitals ranking factor since March 2024." },
+];
+
+function getDefinition(issueText: string): string {
+  const match = ISSUE_DEFINITIONS.find(d => d.pattern.test(issueText));
+  return match?.definition || "This issue was identified during the SEO audit. Addressing it can improve your site's visibility in search results and overall technical health.";
+}
+
 // ── Issue accordion card ────────────────────────────────────────────────────────
 function IssueCard({ issue, idx }: { issue: Issue; idx: number }) {
   const [open, setOpen] = useState(false);
+  const definition = getDefinition(issue.issue);
+
+  const sevConfig = issue.severity === "critical"
+    ? { icon: <XCircle className="h-4 w-4 text-red-500 shrink-0" />, badge: "text-red-600 bg-red-50 border-red-200", label: "Critical" }
+    : issue.severity === "warning"
+      ? { icon: <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />, badge: "text-amber-600 bg-amber-50 border-amber-200", label: "Warning" }
+      : { icon: <Info className="h-4 w-4 text-blue-500 shrink-0" />, badge: "text-blue-600 bg-blue-50 border-blue-200", label: "Notice" };
+
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}
-      className="border rounded-lg overflow-hidden bg-white">
+      className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+      {/* Header row */}
       <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-gray-50 transition-colors">
-        {issue.severity === "critical"
-          ? <XCircle className="h-4 w-4 text-red-500 shrink-0" />
-          : issue.severity === "warning"
-            ? <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-            : <Info className="h-4 w-4 text-blue-500 shrink-0" />}
-        <span className="flex-1 text-sm font-medium text-gray-700 text-left truncate">{issue.issue}</span>
+        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 transition-colors">
+        {sevConfig.icon}
+        <span className="flex-1 text-sm font-semibold text-gray-800 text-left">{issue.issue}</span>
         <div className="flex items-center gap-2 shrink-0">
-          {issue.severity === "critical" && <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">Critical</span>}
-          {issue.severity === "warning"  && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Warning</span>}
-          {issue.severity === "info"     && <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Notice</span>}
-          <span className="text-[10px] text-gray-400 hidden sm:inline">{issue.category}</span>
-          {open ? <ChevronUp className="h-3.5 w-3.5 text-gray-400" /> : <ChevronDown className="h-3.5 w-3.5 text-gray-400" />}
+          <span className={`text-[10px] font-bold border px-2 py-0.5 rounded-full ${sevConfig.badge}`}>{sevConfig.label}</span>
+          <span className="text-[10px] text-gray-400 font-medium hidden sm:inline border border-gray-200 px-2 py-0.5 rounded-full bg-gray-50">{issue.category}</span>
+          <div className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}>
+            <ChevronDown className="h-4 w-4 text-gray-400" />
+          </div>
         </div>
       </button>
+
+      {/* Expanded content */}
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-            <div className="px-4 pb-4 border-t bg-indigo-50/60">
-              <div className="flex items-start gap-2 pt-3">
-                <Sparkles className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-indigo-600 mb-1">AI-Recommended Fix</p>
-                  <p className="text-sm text-gray-600">{issue.fix}</p>
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+            <div className="border-t border-gray-100 divide-y divide-gray-100">
+
+              {/* What this means */}
+              <div className="px-4 py-3.5 bg-gray-50/60">
+                <div className="flex items-start gap-2.5">
+                  <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5">
+                    <Info className="h-3 w-3 text-gray-500" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">What this means</p>
+                    <p className="text-sm text-gray-600 leading-relaxed">{definition}</p>
+                  </div>
                 </div>
               </div>
+
+              {/* AI-Recommended Fix */}
+              <div className="px-4 py-3.5 bg-indigo-50/50">
+                <div className="flex items-start gap-2.5">
+                  <div className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles className="h-3 w-3 text-indigo-500" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-1">AI-Recommended Fix</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{issue.fix}</p>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </motion.div>
         )}
