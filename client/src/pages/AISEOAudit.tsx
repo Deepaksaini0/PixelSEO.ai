@@ -1662,103 +1662,9 @@ export default function AISEOAudit() {
           </div>
         );
 
-        /* ── Per-platform data ── */
-        const platformData: Record<string, {
-          spend: string; conversions: string; convRate: string; convRateNote: string;
-          convValue: string; convValueAvg: string; roas: string; roasNote: string;
-          campaigns: string; campaignsTotal: string;
-          impressions: string; clicks: string; ctr: string; cpc: string; cpa: string;
-          funnelImpr: number; funnelClicks: number; funnelConv: number; funnelRevenue: string;
-          spendBars: number[]; convBars: number[];
-          trendMonths: string[]; trendSpend: number[]; trendConv: number[];
-        }> = {
-          Google: {
-            spend:"US$452", conversions:"21,877", convRate:"2.92%", convRateNote:"750 clicks",
-            convValue:"US$1,079", convValueAvg:"US$49.31 avg", roas:"2.39x", roasNote:"Profitable",
-            campaigns:"2", campaignsTotal:"of 2 total",
-            impressions:"16,419", clicks:"750", ctr:"4.57%", cpc:"US$0.60", cpa:"US$20.67",
-            funnelImpr:16419, funnelClicks:750, funnelConv:21877, funnelRevenue:"US$1,079",
-            spendBars:[40,55,35,60,45,70,50,65,40,55,45,60,50,70],
-            convBars:[30,45,55,40,65,50,70,45,60,55,40,65,50,60],
-            trendMonths:["Jun 24","Jun 25","Jun 26","Jun 27","Jun 28","Jun 29","Jun 30","Jul 1"],
-            trendSpend:[45,62,38,70,55,80,60,42],
-            trendConv:[30,50,45,65,40,75,55,35],
-          },
-          LSA: {
-            spend:"US$180", conversions:"1,240", convRate:"3.45%", convRateNote:"312 clicks",
-            convValue:"US$620", convValueAvg:"US$38.50 avg", roas:"3.44x", roasNote:"Profitable",
-            campaigns:"1", campaignsTotal:"of 1 total",
-            impressions:"9,041", clicks:"312", ctr:"3.45%", cpc:"US$0.58", cpa:"US$14.52",
-            funnelImpr:9041, funnelClicks:312, funnelConv:1240, funnelRevenue:"US$620",
-            spendBars:[30,42,28,50,38,55,42,48,35,44,38,52,40,55],
-            convBars:[25,35,40,30,50,40,58,38,48,44,32,55,42,50],
-            trendMonths:["Jun 24","Jun 25","Jun 26","Jun 27","Jun 28","Jun 29","Jun 30","Jul 1"],
-            trendSpend:[30,45,28,55,40,65,48,33],
-            trendConv:[25,38,35,52,30,60,45,28],
-          },
-          LinkedIn: {
-            spend:"US$320", conversions:"480", convRate:"1.20%", convRateNote:"210 clicks",
-            convValue:"US$960", convValueAvg:"US$115.00 avg", roas:"3.00x", roasNote:"Profitable",
-            campaigns:"3", campaignsTotal:"of 4 total",
-            impressions:"17,500", clicks:"210", ctr:"1.20%", cpc:"US$1.52", cpa:"US$66.67",
-            funnelImpr:17500, funnelClicks:210, funnelConv:480, funnelRevenue:"US$960",
-            spendBars:[60,48,70,55,65,42,75,60,52,68,58,72,50,65],
-            convBars:[20,30,25,38,32,45,28,40,35,22,42,30,38,25],
-            trendMonths:["Jun 24","Jun 25","Jun 26","Jun 27","Jun 28","Jun 29","Jun 30","Jul 1"],
-            trendSpend:[55,70,48,75,62,80,58,68],
-            trendConv:[18,28,22,35,28,42,25,32],
-          },
-          Meta: {
-            spend:"US$275", conversions:"3,820", convRate:"5.32%", convRateNote:"590 clicks",
-            convValue:"US$1,528", convValueAvg:"US$28.75 avg", roas:"5.56x", roasNote:"Excellent",
-            campaigns:"4", campaignsTotal:"of 5 total",
-            impressions:"11,090", clicks:"590", ctr:"5.32%", cpc:"US$0.47", cpa:"US$7.20",
-            funnelImpr:11090, funnelClicks:590, funnelConv:3820, funnelRevenue:"US$1,528",
-            spendBars:[35,50,42,60,48,70,55,65,40,58,48,62,52,68],
-            convBars:[55,70,60,78,65,80,72,75,62,70,58,76,65,72],
-            trendMonths:["Jun 24","Jun 25","Jun 26","Jun 27","Jun 28","Jun 29","Jun 30","Jul 1"],
-            trendSpend:[38,55,45,65,52,75,58,48],
-            trendConv:[50,65,55,72,60,78,68,55],
-          },
-          "Meta Leads": {
-            spend:"US$195", conversions:"2,100", convRate:"4.20%", convRateNote:"420 clicks",
-            convValue:"US$840", convValueAvg:"US$22.50 avg", roas:"4.31x", roasNote:"Good",
-            campaigns:"2", campaignsTotal:"of 2 total",
-            impressions:"10,000", clicks:"420", ctr:"4.20%", cpc:"US$0.46", cpa:"US$9.29",
-            funnelImpr:10000, funnelClicks:420, funnelConv:2100, funnelRevenue:"US$840",
-            spendBars:[28,40,35,50,42,58,48,55,35,48,42,55,45,60],
-            convBars:[45,60,50,70,58,72,65,68,55,62,50,68,58,65],
-            trendMonths:["Jun 24","Jun 25","Jun 26","Jun 27","Jun 28","Jun 29","Jun 30","Jul 1"],
-            trendSpend:[30,45,38,55,45,68,52,42],
-            trendConv:[42,58,48,68,55,72,62,50],
-          },
-        };
-
-        const d = platformData[adsSubTab] || platformData["Google"];
-        const maxFunnel = d.funnelImpr;
-
-        /* ── Platform icon ── */
-        const platformIcon: Record<string, JSX.Element> = {
-          Google: <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>,
-          LSA: <div className="h-8 w-8 rounded-lg bg-green-500 flex items-center justify-center text-white text-xs font-black">LSA</div>,
-          LinkedIn: <svg viewBox="0 0 24 24" className="h-8 w-8" fill="#0077B5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>,
-          Meta: <svg viewBox="0 0 24 24" className="h-8 w-8" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>,
-          "Meta Leads": <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-[10px] font-black leading-tight text-center">Meta<br/>Leads</div>,
-        };
-
-        const platformSubtitles: Record<string, string> = {
-          Google: "Google Search, Display & Shopping Advertising",
-          LSA: "Google Local Services Ads — Pay-per-lead verified listings",
-          LinkedIn: "LinkedIn Sponsored Content, Message & Text Ads",
-          Meta: "Facebook & Instagram Ads across all placements",
-          "Meta Leads": "Facebook & Instagram Lead Generation Campaigns",
-        };
-
-        const maxTrend = Math.max(...d.trendSpend, ...d.trendConv);
-
-        return (
+        /* ── No audit yet — prompt ── */
+        if (!report) return (
           <div className="bg-[#f5f6f8]">
-            {/* Sub-tabs */}
             <div className="border-b border-gray-200 bg-white px-6">
               <div className="flex gap-1">
                 {["Google","LSA","LinkedIn","Meta","Meta Leads"].map((tab, idx) => {
@@ -1773,39 +1679,139 @@ export default function AISEOAudit() {
                 })}
               </div>
             </div>
+            <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+              <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-12">
+                <div className="text-5xl mb-4">📊</div>
+                <h3 className="text-lg font-black text-gray-800 mb-2">Run a Google SEO Audit First</h3>
+                <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+                  Your Ads Intelligence dashboard is populated from your website audit data — Quality Scores, landing page analysis, ad-blocking issues, and estimated traffic are all derived from the crawl.
+                </p>
+                <button
+                  onClick={() => { setActiveNavTab("SEO"); setSeoSubTab("google"); }}
+                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  Go to Google SEO Audit
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
+        /* ── Derive all metrics from the audit report ── */
+        const seoScore   = report.score;
+        const techScore  = report.techScore ?? report.score;
+        const pages      = report.pages ?? [];
+        const issues     = report.issues ?? [];
+        const crawled    = report.pagesCrawled ?? pages.length;
+        const auditDate  = report.crawledAt ? new Date(report.crawledAt) : new Date();
+
+        // Quality Score: derived from SEO + tech score (1–10 scale)
+        const qualityScore = Math.max(1, Math.min(10, Math.round((seoScore * 0.5 + techScore * 0.5) / 10)));
+        const qsColor = qualityScore >= 7 ? "text-green-600" : qualityScore >= 4 ? "text-amber-600" : "text-red-500";
+        const qsNote  = qualityScore >= 7 ? "Above Average" : qualityScore >= 4 ? "Needs Work" : "Poor";
+
+        // Estimated impressions from pages crawled × avg monthly searches per page
+        const estImpressions = crawled * 820;
+        const ctrRate = seoScore >= 80 ? 0.042 : seoScore >= 60 ? 0.031 : 0.019;
+        const estClicks      = Math.round(estImpressions * ctrRate);
+        const ctrPct         = (ctrRate * 100).toFixed(2) + "%";
+
+        // Platform-specific multipliers (each channel gets different traffic share)
+        const platformMulti: Record<string, { imprMult:number; clickMult:number; convRate:number; cpc:number; label:string }> = {
+          Google:       { imprMult:1.00, clickMult:1.00, convRate:0.029, cpc:0.60,  label:"Google Search, Display & Shopping" },
+          LSA:          { imprMult:0.55, clickMult:0.42, convRate:0.034, cpc:0.58,  label:"Google Local Services Ads" },
+          LinkedIn:     { imprMult:1.07, clickMult:0.28, convRate:0.012, cpc:1.52,  label:"LinkedIn Sponsored Content & Text Ads" },
+          Meta:         { imprMult:0.68, clickMult:0.79, convRate:0.053, cpc:0.47,  label:"Facebook & Instagram Ads" },
+          "Meta Leads": { imprMult:0.61, clickMult:0.56, convRate:0.042, cpc:0.46,  label:"Facebook & Instagram Lead Generation" },
+        };
+        const pm = platformMulti[adsSubTab] ?? platformMulti["Google"];
+        const pImpr   = Math.round(estImpressions * pm.imprMult);
+        const pClicks = Math.round(estClicks * pm.clickMult);
+        const pConvs  = Math.round(pClicks * pm.convRate);
+        const pCPC    = pm.cpc;
+        const pSpend  = (pClicks * pCPC).toFixed(0);
+        const pRevenue = (pConvs * 49.31).toFixed(0);
+        const pROAS    = pSpend > "0" ? (parseFloat(pRevenue) / parseFloat(pSpend)).toFixed(2) : "0";
+        const pCTR     = pImpr > 0 ? ((pClicks / pImpr) * 100).toFixed(2) + "%" : "0%";
+        const pCPA     = pConvs > 0 ? "US$" + (parseFloat(pSpend) / pConvs).toFixed(2) : "—";
+        const activeCampaigns = Math.max(1, Math.round(crawled / 5));
+
+        // Issue-derived ad intel
+        const adIssues = issues.filter(i =>
+          /speed|slow|lcp|cls|mobile|viewport|https|ssl|title|h1|meta desc|image.*alt|scripts|render.?block/i.test(i.issue)
+        ).slice(0, 8);
+
+        // Best landing pages = pages with most content & valid title
+        const bestPages = [...pages]
+          .filter(p => p.title && p.wordCount && p.wordCount > 100)
+          .sort((a, b) => (b.wordCount || 0) - (a.wordCount || 0))
+          .slice(0, 6);
+
+        // Sparkline seed from SEO score (realistic variation)
+        const seedBars = (base: number) =>
+          Array.from({ length: 14 }, (_, i) => Math.max(10, Math.min(95, base + ((i * 7 + 11) % 31) - 15)));
+
+        const trendMonths = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun","Mon","Tue","Wed","Thu","Fri","Sat","Sun"].slice(0,8);
+        const trendSpend  = Array.from({length:8},(_,i) => Math.max(20, Math.min(95, 50 + ((i*13+seoScore)%35)-17)));
+        const trendConv   = Array.from({length:8},(_,i) => Math.max(15, Math.min(90, 45 + ((i*11+techScore)%30)-15)));
+        const maxTrend    = Math.max(...trendSpend, ...trendConv);
+
+        const platformIcons: Record<string, React.ReactNode> = {
+          Google: <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>,
+          LSA: <div className="h-8 w-8 rounded-lg bg-green-500 flex items-center justify-center text-white text-xs font-black">LSA</div>,
+          LinkedIn: <svg viewBox="0 0 24 24" className="h-8 w-8" fill="#0077B5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>,
+          Meta: <svg viewBox="0 0 24 24" className="h-8 w-8" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>,
+          "Meta Leads": <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-[10px] font-black leading-tight text-center">Meta<br/>Leads</div>,
+        };
+
+        return (
+          <div className="bg-[#f5f6f8]">
+            {/* Sub-tabs */}
+            <div className="border-b border-gray-200 bg-white px-6">
+              <div className="flex gap-1 overflow-x-auto">
+                {["Google","LSA","LinkedIn","Meta","Meta Leads"].map((tab, idx) => {
+                  const dotColors = ["bg-blue-500","bg-green-500","bg-blue-700","bg-blue-600","bg-blue-400"];
+                  return (
+                    <button key={tab} onClick={() => setAdsSubTab(tab)}
+                      className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${adsSubTab === tab ? "border-blue-500 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+                      <span className={`h-2 w-2 rounded-full shrink-0 ${dotColors[idx]}`} />
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="max-w-7xl mx-auto px-4 py-5">
               {/* Dashboard header */}
-              <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 mb-4 flex items-center justify-between">
+              <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  {platformIcon[adsSubTab]}
+                  {platformIcons[adsSubTab]}
                   <div>
-                    <h2 className="text-base font-bold text-gray-900">{adsSubTab} Ads Dashboard</h2>
-                    <p className="text-xs text-gray-400">{platformSubtitles[adsSubTab]} <span className="text-gray-300 mx-1">·</span> <span className="text-gray-400">Last sync: Jul 1, 02:37 PM</span></p>
+                    <h2 className="text-base font-bold text-gray-900">{adsSubTab} Ads Intelligence — <span className="text-blue-600">{report.domain}</span></h2>
+                    <p className="text-xs text-gray-400">{pm.label} <span className="text-gray-300 mx-1">·</span> Based on audit of {crawled} pages · {auditDate.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-600 bg-white">
+                  <span className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-600 bg-gray-50">
                     <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    Jun 24, 2026 — Jul 1, 2026
-                    <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                  </div>
-                  <button className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                    Sync
-                  </button>
+                    Estimated · Last 30 days
+                  </span>
+                  <span className="flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-200 text-xs font-semibold px-3 py-1.5 rounded-lg">
+                    ✓ Audit data loaded
+                  </span>
                 </div>
               </div>
 
               {/* Top 6 metric cards */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
                 {[
-                  { label: "Total Spend",       val: d.spend,       note: "",              bars: d.spendBars, color: "#818cf8" },
-                  { label: "Conversions",        val: d.conversions, note: "",              bars: d.convBars,  color: "#34d399" },
-                  { label: "Conv. Rate",         val: d.convRate,    note: d.convRateNote,  bars: [35,50,40,60,45,55,65,45,58,50,42,60,52,68], color: "#6ee7b7" },
-                  { label: "Conv. Value",        val: d.convValue,   note: d.convValueAvg,  bars: [40,55,45,65,50,70,55,68,48,60,52,65,55,72], color: "#fb923c" },
-                  { label: "ROAS",               val: d.roas,        note: d.roasNote,      bars: [45,60,50,70,55,65,75,55,65,58,48,68,58,75], color: "#c084fc" },
-                  { label: "Active Campaigns",   val: d.campaigns,   note: d.campaignsTotal,bars: [60,60,70,70,70,80,80,70,80,70,60,80,70,80], color: "#fbbf24" },
+                  { label: "Est. Impressions",  val: pImpr.toLocaleString(),     note: `${crawled} pages crawled`,    bars: seedBars(55), color: "#818cf8" },
+                  { label: "Est. Clicks",        val: pClicks.toLocaleString(),   note: `CTR ${pCTR}`,                 bars: seedBars(45), color: "#34d399" },
+                  { label: "Est. Conv. Rate",    val: (pm.convRate * 100).toFixed(2) + "%", note: `${pConvs.toLocaleString()} convs`, bars: seedBars(40), color: "#6ee7b7" },
+                  { label: "Quality Score",      val: qualityScore + "/10",       note: qsNote,                        bars: seedBars(qualityScore * 8), color: "#fb923c" },
+                  { label: "ROAS Potential",     val: pROAS + "x",               note: parseFloat(pROAS) >= 2 ? "Profitable" : "Review", bars: seedBars(50), color: "#c084fc" },
+                  { label: "Pages for Ads",      val: String(activeCampaigns),    note: `of ${crawled} crawled`,       bars: seedBars(70), color: "#fbbf24" },
                 ].map(m => (
                   <div key={m.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
                     <p className="text-[11px] text-gray-500 font-medium">{m.label}</p>
@@ -1819,15 +1825,15 @@ export default function AISEOAudit() {
               {/* Second row: 5 metric cards */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
                 {[
-                  { label: "Impressions", val: d.impressions, color: "#818cf8", bars: [40,55,35,62,48,70,52,65,42,58,48,65,52,72] },
-                  { label: "Clicks",      val: d.clicks,      color: "#6366f1", bars: [30,45,38,55,42,60,48,58,35,50,42,58,48,65] },
-                  { label: "CTR",         val: d.ctr,         color: "#3b82f6", bars: [35,50,42,60,48,65,55,62,42,55,48,62,52,70], bold: true },
-                  { label: "Avg CPC",     val: d.cpc,         color: "#f59e0b", bars: [55,65,50,70,58,75,62,68,52,65,55,70,60,75] },
-                  { label: "CPA",         val: d.cpa,         color: "#a78bfa", bars: [45,60,50,68,55,72,58,65,48,62,52,68,55,72] },
+                  { label: "SEO Score",      val: seoScore + "/100",  color: seoScore >= 80 ? "#22c55e" : seoScore >= 60 ? "#f59e0b" : "#ef4444", bars: seedBars(seoScore), bold: false },
+                  { label: "Tech Score",     val: techScore + "/100", color: "#6366f1", bars: seedBars(techScore), bold: false },
+                  { label: "Est. CTR",       val: pCTR,               color: "#3b82f6", bars: seedBars(35), bold: true },
+                  { label: "Est. Avg CPC",   val: "US$" + pCPC.toFixed(2), color: "#f59e0b", bars: seedBars(60), bold: false },
+                  { label: "Est. CPA",       val: pCPA,               color: "#a78bfa", bars: seedBars(45), bold: false },
                 ].map(m => (
                   <div key={m.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
                     <p className="text-[11px] text-gray-500 font-medium">{m.label}</p>
-                    <p className={`text-xl font-black mt-0.5 leading-tight ${(m as any).bold ? "text-blue-500" : "text-gray-900"}`}>{m.val}</p>
+                    <p className={`text-xl font-black mt-0.5 leading-tight ${m.bold ? "text-blue-500" : "text-gray-900"}`}>{m.val}</p>
                     <Spark bars={m.bars} color={m.color} />
                   </div>
                 ))}
@@ -1835,47 +1841,110 @@ export default function AISEOAudit() {
 
               {/* Conversion Funnel */}
               <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 mb-3">
-                <h3 className="text-sm font-bold text-gray-800 mb-4">Conversion Funnel</h3>
+                <h3 className="text-sm font-bold text-gray-800 mb-1">Conversion Funnel <span className="text-xs font-normal text-gray-400 ml-1">— estimated from {report.domain} audit</span></h3>
+                <p className="text-xs text-gray-400 mb-4">Based on {crawled} pages crawled · SEO score {seoScore}/100</p>
                 <div className="space-y-4">
-                  {[
-                    { label: "Impressions",  val: d.funnelImpr,   valFmt: d.impressions, change: "",         color: "#3b82f6", widthPct: 100 },
-                    { label: "Clicks",       val: d.funnelClicks,  valFmt: d.clicks,      change: "-95.4%",   color: "#22c55e", widthPct: Math.round((d.funnelClicks / maxFunnel) * 100) },
-                    { label: "Conversions",  val: d.funnelConv,    valFmt: d.conversions, change: "-97.1%",   color: "#22c55e", widthPct: Math.max(1, Math.round((d.funnelConv / maxFunnel) * 100)) },
-                    { label: "Revenue",      val: 0,               valFmt: d.funnelRevenue, change: "-4831.1%", color: "#22c55e", widthPct: 2 },
-                  ].map(f => (
-                    <div key={f.label}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-6">
-                          <span className="text-xs text-gray-500 w-24">{f.label}</span>
-                          <span className="text-sm font-bold text-gray-900">{f.valFmt}</span>
-                          {f.change && <span className="text-xs text-red-500 font-medium">{f.change}</span>}
+                  {(() => {
+                    const funnelData = [
+                      { label: "Impressions", val: pImpr, fmt: pImpr.toLocaleString(), color: "#3b82f6" },
+                      { label: "Clicks",      val: pClicks, fmt: pClicks.toLocaleString(), color: "#22c55e" },
+                      { label: "Conversions", val: pConvs, fmt: pConvs.toLocaleString(), color: "#10b981" },
+                      { label: "Revenue",     val: parseFloat(pRevenue), fmt: "US$" + parseInt(pRevenue).toLocaleString(), color: "#6366f1" },
+                    ];
+                    return funnelData.map((f, idx) => {
+                      const widthPct = idx === 0 ? 100 : Math.max(2, Math.round((f.val / pImpr) * 100));
+                      const dropPct  = idx > 0 ? "-" + (100 - Math.round((f.val / (funnelData[idx-1].val || 1)) * 100)) + "%" : "";
+                      return (
+                        <div key={f.label}>
+                          <div className="flex items-center gap-6 mb-1.5">
+                            <span className="text-xs text-gray-500 w-24">{f.label}</span>
+                            <span className="text-sm font-bold text-gray-900">{f.fmt}</span>
+                            {dropPct && <span className="text-xs text-red-500 font-medium">{dropPct}</span>}
+                          </div>
+                          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${widthPct}%`, backgroundColor: f.color }} />
+                          </div>
                         </div>
-                      </div>
-                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${f.widthPct}%`, backgroundColor: f.color }} />
-                      </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* 2-col: Best Landing Pages + Ad-Blocking Issues */}
+              <div className="grid sm:grid-cols-2 gap-3 mb-3">
+                {/* Best landing pages from crawl */}
+                <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+                  <h3 className="text-sm font-bold text-gray-800 mb-3">🏆 Best Landing Pages for Ads</h3>
+                  {bestPages.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {bestPages.map((p, i) => {
+                        const qs = Math.max(1, Math.min(10, Math.round((qualityScore * 0.7) + (Math.min(p.wordCount || 0, 1000) / 200))));
+                        return (
+                          <div key={p.url} className="flex items-start gap-2.5">
+                            <span className="h-5 w-5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">{i+1}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-700 truncate">{p.title || p.url}</p>
+                              <p className="text-[10px] text-gray-400 truncate">{p.url}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] text-gray-400">{(p.wordCount||0).toLocaleString()} words</span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${qs >= 7 ? "bg-green-50 text-green-700" : qs >= 4 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-600"}`}>QS {qs}/10</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  ) : (
+                    <p className="text-xs text-gray-400">No page data available. Make sure your audit crawled multiple pages.</p>
+                  )}
+                </div>
+
+                {/* Issues hurting ad performance */}
+                <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+                  <h3 className="text-sm font-bold text-gray-800 mb-3">⚠️ Issues Hurting Ad Performance</h3>
+                  {adIssues.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {adIssues.map((issue, i) => (
+                        <div key={i} className="flex items-start gap-2.5">
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${issue.severity === "critical" ? "bg-red-50 text-red-600" : issue.severity === "warning" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-600"}`}>
+                            {issue.severity === "critical" ? "Crit" : issue.severity === "warning" ? "Warn" : "Info"}
+                          </span>
+                          <div>
+                            <p className="text-xs font-semibold text-gray-700">{issue.issue}</p>
+                            <p className="text-[10px] text-gray-400 leading-snug">{issue.fix}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 py-4">
+                      <span className="text-green-500 text-xl">✓</span>
+                      <p className="text-sm text-green-700 font-medium">No critical ad-blocking issues found!</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Spend & Conversions Trend */}
               <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
-                <h3 className="text-sm font-bold text-gray-800 mb-4">Spend & Conversions Trend</h3>
-                <div className="flex items-end gap-1.5 h-32">
-                  {d.trendMonths.map((month, i) => (
-                    <div key={month} className="flex-1 flex flex-col items-center gap-0.5">
+                <h3 className="text-sm font-bold text-gray-800 mb-1">Estimated Spend & Conversions Trend</h3>
+                <p className="text-xs text-gray-400 mb-4">Projected 8-day performance based on audit score of {seoScore}/100</p>
+                <div className="flex items-end gap-1.5" style={{height:120}}>
+                  {trendMonths.map((month, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
                       <div className="w-full flex gap-0.5 items-end" style={{ height: 100 }}>
-                        <div className="flex-1 rounded-sm" style={{ height: `${(d.trendSpend[i] / maxTrend) * 100}%`, backgroundColor: "#818cf8" }} />
-                        <div className="flex-1 rounded-sm" style={{ height: `${(d.trendConv[i] / maxTrend) * 100}%`, backgroundColor: "#34d399" }} />
+                        <div className="flex-1 rounded-sm" style={{ height: `${(trendSpend[i] / maxTrend) * 100}%`, backgroundColor: "#818cf8" }} />
+                        <div className="flex-1 rounded-sm" style={{ height: `${(trendConv[i] / maxTrend) * 100}%`, backgroundColor: "#34d399" }} />
                       </div>
                       <span className="text-[9px] text-gray-400 whitespace-nowrap">{month}</span>
                     </div>
                   ))}
                 </div>
                 <div className="flex items-center gap-4 mt-3">
-                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#818cf8]" /><span className="text-xs text-gray-500">Spend</span></div>
-                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#34d399]" /><span className="text-xs text-gray-500">Conversions</span></div>
+                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#818cf8]" /><span className="text-xs text-gray-500">Est. Spend</span></div>
+                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#34d399]" /><span className="text-xs text-gray-500">Est. Conversions</span></div>
+                  <span className="text-[10px] text-gray-300 ml-auto">Estimates based on audit data · connect Google Ads for live data</span>
                 </div>
               </div>
 
