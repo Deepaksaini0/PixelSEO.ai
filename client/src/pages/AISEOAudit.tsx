@@ -314,6 +314,55 @@ export default function AISEOAudit() {
   const [activeNavTab, setActiveNavTab] = useState("SEO");
   const [adsSubTab, setAdsSubTab] = useState("Google");
 
+  // ── Ads platform connection state ──────────────────────────────────────────
+  type AdsConn = { credentials: Record<string,string>; metrics: any; syncedAt: string };
+  const [adsConnections, setAdsConnections] = useState<Record<string, AdsConn>>(() => {
+    try { return JSON.parse(localStorage.getItem("ads_connections") || "{}"); } catch { return {}; }
+  });
+  const [connectModal, setConnectModal] = useState<string | null>(null);
+  const [connectForm,  setConnectForm]  = useState<Record<string,string>>({});
+  const [connectError, setConnectError] = useState("");
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [adsRefreshing, setAdsRefreshing]   = useState(false);
+
+  const saveAdsConn = (platform: string, conn: AdsConn) => {
+    const next = { ...adsConnections, [platform]: conn };
+    setAdsConnections(next);
+    localStorage.setItem("ads_connections", JSON.stringify(next));
+  };
+  const disconnectAds = (platform: string) => {
+    const next = { ...adsConnections };
+    delete next[platform];
+    setAdsConnections(next);
+    localStorage.setItem("ads_connections", JSON.stringify(next));
+  };
+  const refreshAdsMetrics = async (platform: string) => {
+    const conn = adsConnections[platform];
+    if (!conn) return;
+    setAdsRefreshing(true);
+    try {
+      const r = await fetch("/api/ads/metrics", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ platform, credentials: conn.credentials }) });
+      const d = await r.json();
+      if (d.ok) saveAdsConn(platform, { ...conn, metrics: d.metrics, syncedAt: d.syncedAt });
+      else toast({ title: "Refresh failed", description: d.error, variant: "destructive" });
+    } catch { toast({ title: "Network error", variant: "destructive" }); }
+    setAdsRefreshing(false);
+  };
+  const handleAdsConnect = async () => {
+    if (!connectModal) return;
+    setConnectError(""); setConnectLoading(true);
+    try {
+      const r = await fetch("/api/ads/connect", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ platform: connectModal, credentials: connectForm }) });
+      const d = await r.json();
+      if (d.ok) {
+        saveAdsConn(connectModal, { credentials: connectForm, metrics: d.metrics, syncedAt: d.syncedAt });
+        setConnectModal(null); setConnectForm({});
+        toast({ title: `${connectModal} connected!`, description: "Live metrics are now loaded." });
+      } else { setConnectError(d.error || "Connection failed"); }
+    } catch { setConnectError("Network error — please try again"); }
+    setConnectLoading(false);
+  };
+
   // ── Local SEO state ──
   const [localUrl,      setLocalUrl]      = useState("");
   const [localBizName,  setLocalBizName]  = useState("");
@@ -1792,52 +1841,181 @@ export default function AISEOAudit() {
                     <p className="text-xs text-gray-400">{pm.label} <span className="text-gray-300 mx-1">·</span> Based on audit of {crawled} pages · {auditDate.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-600 bg-gray-50">
-                    <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    Estimated · Last 30 days
-                  </span>
-                  <span className="flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-200 text-xs font-semibold px-3 py-1.5 rounded-lg">
-                    ✓ Audit data loaded
-                  </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {adsConnections[adsSubTab] ? (
+                    <>
+                      <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold px-3 py-1.5 rounded-lg">
+                        🔗 Live data · Last 30 days
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        Synced {new Date(adsConnections[adsSubTab].syncedAt).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}
+                      </span>
+                      <button
+                        onClick={() => refreshAdsMetrics(adsSubTab)}
+                        disabled={adsRefreshing}
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg px-2.5 py-1.5 bg-white hover:bg-blue-50 transition-colors disabled:opacity-50"
+                        title="Refresh metrics"
+                      >
+                        <svg className={`h-3 w-3 ${adsRefreshing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        {adsRefreshing ? "Refreshing…" : "Refresh"}
+                      </button>
+                      <button
+                        onClick={() => disconnectAds(adsSubTab)}
+                        className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-2.5 py-1.5 bg-white hover:bg-red-50 transition-colors"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-600 bg-gray-50">
+                        <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        Estimated · Last 30 days
+                      </span>
+                      <button
+                        onClick={() => { setConnectModal(adsSubTab); setConnectForm({}); setConnectError(""); }}
+                        className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                        Connect {adsSubTab} Ads
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Top 6 metric cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
-                {[
-                  { label: "Est. Impressions",  val: pImpr.toLocaleString(),     note: `${crawled} pages crawled`,    bars: seedBars(55), color: "#818cf8" },
-                  { label: "Est. Clicks",        val: pClicks.toLocaleString(),   note: `CTR ${pCTR}`,                 bars: seedBars(45), color: "#34d399" },
-                  { label: "Est. Conv. Rate",    val: (pm.convRate * 100).toFixed(2) + "%", note: `${pConvs.toLocaleString()} convs`, bars: seedBars(40), color: "#6ee7b7" },
-                  { label: "Quality Score",      val: qualityScore + "/10",       note: qsNote,                        bars: seedBars(qualityScore * 8), color: "#fb923c" },
-                  { label: "ROAS Potential",     val: pROAS + "x",               note: parseFloat(pROAS) >= 2 ? "Profitable" : "Review", bars: seedBars(50), color: "#c084fc" },
-                  { label: "Pages for Ads",      val: String(activeCampaigns),    note: `of ${crawled} crawled`,       bars: seedBars(70), color: "#fbbf24" },
-                ].map(m => (
-                  <div key={m.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
-                    <p className="text-[11px] text-gray-500 font-medium">{m.label}</p>
-                    <p className="text-xl font-black text-gray-900 mt-0.5 leading-tight">{m.val}</p>
-                    {m.note && <p className="text-[10px] text-gray-400 mt-0.5">{m.note}</p>}
-                    <Spark bars={m.bars} color={m.color} />
+              {/* ── Connect Ads Modal ──────────────────────────────────────────── */}
+              {connectModal && (() => {
+                const isGoogle = connectModal === "Google" || connectModal === "LSA";
+                const isMeta   = connectModal === "Meta" || connectModal === "Meta Leads";
+                const isLI     = connectModal === "LinkedIn";
+                const fields: { key: string; label: string; placeholder: string; type?: string }[] = isGoogle ? [
+                  { key: "customerId",    label: "Customer ID",      placeholder: "123-456-7890" },
+                  { key: "developerToken",label: "Developer Token",  placeholder: "Your Google Ads developer token", type: "password" },
+                  { key: "accessToken",   label: "Access Token",     placeholder: "OAuth2 access token", type: "password" },
+                ] : (isMeta ? [
+                  { key: "adAccountId",  label: "Ad Account ID",    placeholder: "act_123456789 or 123456789" },
+                  { key: "accessToken",  label: "Access Token",     placeholder: "Meta Graph API access token", type: "password" },
+                ] : [
+                  { key: "adAccountId",  label: "Ad Account ID",    placeholder: "LinkedIn sponsored account ID" },
+                  { key: "accessToken",  label: "Access Token",     placeholder: "LinkedIn OAuth2 access token", type: "password" },
+                ]);
+                return (
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setConnectModal(null); }}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                      {/* Modal header */}
+                      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                            <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                          </div>
+                          <div>
+                            <h3 className="text-base font-bold text-gray-900">Connect {connectModal} Ads</h3>
+                            <p className="text-xs text-gray-400">Pull live metrics into your dashboard</p>
+                          </div>
+                        </div>
+                        <button onClick={() => setConnectModal(null)} className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                      {/* Modal body */}
+                      <div className="px-6 py-5 space-y-4">
+                        {fields.map(f => (
+                          <div key={f.key} className="space-y-1.5">
+                            <label className="text-xs font-semibold text-gray-700">{f.label}</label>
+                            <input
+                              type={f.type || "text"}
+                              placeholder={f.placeholder}
+                              value={connectForm[f.key] || ""}
+                              onChange={e => setConnectForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-300 font-mono"
+                            />
+                          </div>
+                        ))}
+                        {connectError && (
+                          <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+                            <svg className="h-4 w-4 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <p className="text-xs text-red-700">{connectError}</p>
+                          </div>
+                        )}
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                          <p className="text-xs text-amber-700">
+                            <span className="font-semibold">Credentials are stored locally</span> in your browser only — never sent to our servers except during the live API call.
+                          </p>
+                        </div>
+                      </div>
+                      {/* Modal footer */}
+                      <div className="px-6 pb-5 flex gap-2">
+                        <button
+                          onClick={() => setConnectModal(null)}
+                          className="flex-1 border border-gray-200 rounded-lg py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleAdsConnect}
+                          disabled={connectLoading || fields.some(f => !connectForm[f.key]?.trim())}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                        >
+                          {connectLoading ? (
+                            <><svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Connecting…</>
+                          ) : "Connect & Load Data"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })()}
+
+              {/* Top 6 metric cards — live data when connected */}
+              {(() => {
+                const live = adsConnections[adsSubTab]?.metrics;
+                const isLive = !!live;
+                const row1 = [
+                  { label: isLive ? "Impressions"   : "Est. Impressions",  val: isLive ? parseInt(live.impressions).toLocaleString()  : pImpr.toLocaleString(),    note: isLive ? "Live · 30 days"            : `${crawled} pages crawled`,  bars: seedBars(55), color: "#818cf8" },
+                  { label: isLive ? "Clicks"         : "Est. Clicks",        val: isLive ? parseInt(live.clicks).toLocaleString()       : pClicks.toLocaleString(),   note: isLive ? `CTR ${live.ctr}%`          : `CTR ${pCTR}`,               bars: seedBars(45), color: "#34d399" },
+                  { label: isLive ? "Conv. Rate"     : "Est. Conv. Rate",    val: isLive ? live.convRate + "%"                          : (pm.convRate * 100).toFixed(2) + "%", note: isLive ? `${parseInt(live.conversions).toLocaleString()} convs` : `${pConvs.toLocaleString()} convs`, bars: seedBars(40), color: "#6ee7b7" },
+                  { label: "Quality Score",           val: qualityScore + "/10", note: qsNote,                                          bars: seedBars(qualityScore * 8), color: "#fb923c" },
+                  { label: isLive ? "ROAS"            : "ROAS Potential",    val: isLive ? live.roas + "x"                              : pROAS + "x",               note: isLive ? (parseFloat(live.roas) >= 2 ? "Profitable" : "Review") : (parseFloat(pROAS) >= 2 ? "Profitable" : "Review"), bars: seedBars(50), color: "#c084fc" },
+                  { label: isLive ? "Active Campaigns": "Pages for Ads",     val: isLive ? String(live.activeCampaigns || "-")           : String(activeCampaigns),  note: isLive ? "Live campaigns"            : `of ${crawled} crawled`,     bars: seedBars(70), color: "#fbbf24" },
+                ];
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
+                    {row1.map(m => (
+                      <div key={m.label} className={`rounded-xl border px-4 py-3 ${isLive ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"}`}>
+                        <p className="text-[11px] text-gray-500 font-medium">{m.label}</p>
+                        <p className="text-xl font-black text-gray-900 mt-0.5 leading-tight">{m.val}</p>
+                        {m.note && <p className="text-[10px] text-gray-400 mt-0.5">{m.note}</p>}
+                        <Spark bars={m.bars} color={m.color} />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {/* Second row: 5 metric cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
-                {[
-                  { label: "SEO Score",      val: seoScore + "/100",  color: seoScore >= 80 ? "#22c55e" : seoScore >= 60 ? "#f59e0b" : "#ef4444", bars: seedBars(seoScore), bold: false },
-                  { label: "Tech Score",     val: techScore + "/100", color: "#6366f1", bars: seedBars(techScore), bold: false },
-                  { label: "Est. CTR",       val: pCTR,               color: "#3b82f6", bars: seedBars(35), bold: true },
-                  { label: "Est. Avg CPC",   val: "US$" + pCPC.toFixed(2), color: "#f59e0b", bars: seedBars(60), bold: false },
-                  { label: "Est. CPA",       val: pCPA,               color: "#a78bfa", bars: seedBars(45), bold: false },
-                ].map(m => (
-                  <div key={m.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
-                    <p className="text-[11px] text-gray-500 font-medium">{m.label}</p>
-                    <p className={`text-xl font-black mt-0.5 leading-tight ${m.bold ? "text-blue-500" : "text-gray-900"}`}>{m.val}</p>
-                    <Spark bars={m.bars} color={m.color} />
+              {(() => {
+                const live = adsConnections[adsSubTab]?.metrics;
+                const isLive = !!live;
+                const row2 = [
+                  { label: "SEO Score",             val: seoScore + "/100",                        color: seoScore >= 80 ? "#22c55e" : seoScore >= 60 ? "#f59e0b" : "#ef4444", bars: seedBars(seoScore),  bold: false },
+                  { label: "Tech Score",             val: techScore + "/100",                       color: "#6366f1",  bars: seedBars(techScore), bold: false },
+                  { label: isLive ? "CTR"          : "Est. CTR",   val: isLive ? live.ctr + "%"   : pCTR,            color: "#3b82f6",  bars: seedBars(35), bold: true  },
+                  { label: isLive ? "Avg CPC"      : "Est. Avg CPC", val: isLive ? "US$" + parseFloat(live.cpc).toFixed(2) : "US$" + pCPC.toFixed(2), color: "#f59e0b", bars: seedBars(60), bold: false },
+                  { label: isLive ? "CPA"          : "Est. CPA",   val: isLive ? "US$" + parseFloat(live.cpa).toFixed(2) : pCPA,            color: "#a78bfa",  bars: seedBars(45), bold: false },
+                ];
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
+                    {row2.map(m => (
+                      <div key={m.label} className={`rounded-xl border px-4 py-3 ${isLive && ["CTR","Avg CPC","CPA"].includes(m.label) ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"}`}>
+                        <p className="text-[11px] text-gray-500 font-medium">{m.label}</p>
+                        <p className={`text-xl font-black mt-0.5 leading-tight ${m.bold ? "text-blue-500" : "text-gray-900"}`}>{m.val}</p>
+                        <Spark bars={m.bars} color={m.color} />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
 
               {/* Conversion Funnel */}
               <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 mb-3">

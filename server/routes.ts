@@ -2216,6 +2216,80 @@ Return ONLY valid JSON (no markdown) with EXACTLY this structure:
     }
   });
 
+  // ── Ads Platform: Connect (validate credentials) ───────────────────────────
+  app.post("/api/ads/connect", async (req, res) => {
+    try {
+      const { platform, credentials } = req.body;
+      if (!platform || !credentials) return res.status(400).json({ error: "platform and credentials required" });
+      let metrics: any;
+      switch (platform) {
+        case "Google":
+          if (!credentials.customerId || !credentials.accessToken || !credentials.developerToken)
+            return res.status(400).json({ error: "customerId, accessToken and developerToken required" });
+          metrics = await fetchGoogleAdsMetrics(credentials.customerId, credentials.accessToken, credentials.developerToken);
+          break;
+        case "LSA":
+          if (!credentials.customerId || !credentials.accessToken || !credentials.developerToken)
+            return res.status(400).json({ error: "customerId, accessToken and developerToken required" });
+          metrics = await fetchGoogleAdsMetrics(credentials.customerId, credentials.accessToken, credentials.developerToken);
+          metrics.platform = "LSA";
+          break;
+        case "LinkedIn":
+          if (!credentials.adAccountId || !credentials.accessToken)
+            return res.status(400).json({ error: "adAccountId and accessToken required" });
+          metrics = await fetchLinkedInAdsMetrics(credentials.adAccountId, credentials.accessToken);
+          break;
+        case "Meta":
+          if (!credentials.adAccountId || !credentials.accessToken)
+            return res.status(400).json({ error: "adAccountId and accessToken required" });
+          metrics = await fetchMetaAdsMetrics(credentials.adAccountId, credentials.accessToken, false);
+          break;
+        case "Meta Leads":
+          if (!credentials.adAccountId || !credentials.accessToken)
+            return res.status(400).json({ error: "adAccountId and accessToken required" });
+          metrics = await fetchMetaAdsMetrics(credentials.adAccountId, credentials.accessToken, true);
+          break;
+        default:
+          return res.status(400).json({ error: "Unknown platform" });
+      }
+      res.json({ ok: true, metrics, syncedAt: new Date().toISOString() });
+    } catch (err: any) {
+      const msg = err?.response?.data?.error?.message || err?.response?.data?.message || err.message || "Connection failed";
+      res.status(400).json({ error: msg });
+    }
+  });
+
+  // ── Ads Platform: Refresh metrics ──────────────────────────────────────────
+  app.post("/api/ads/metrics", async (req, res) => {
+    try {
+      const { platform, credentials } = req.body;
+      if (!platform || !credentials) return res.status(400).json({ error: "platform and credentials required" });
+      let metrics: any;
+      switch (platform) {
+        case "Google":
+        case "LSA":
+          metrics = await fetchGoogleAdsMetrics(credentials.customerId, credentials.accessToken, credentials.developerToken);
+          if (platform === "LSA") metrics.platform = "LSA";
+          break;
+        case "LinkedIn":
+          metrics = await fetchLinkedInAdsMetrics(credentials.adAccountId, credentials.accessToken);
+          break;
+        case "Meta":
+          metrics = await fetchMetaAdsMetrics(credentials.adAccountId, credentials.accessToken, false);
+          break;
+        case "Meta Leads":
+          metrics = await fetchMetaAdsMetrics(credentials.adAccountId, credentials.accessToken, true);
+          break;
+        default:
+          return res.status(400).json({ error: "Unknown platform" });
+      }
+      res.json({ ok: true, metrics, syncedAt: new Date().toISOString() });
+    } catch (err: any) {
+      const msg = err?.response?.data?.error?.message || err?.response?.data?.message || err.message || "Fetch failed";
+      res.status(400).json({ error: msg });
+    }
+  });
+
   // ── AI SEO Content Optimizer ───────────────────────────────────────────────
   app.post("/api/seo/ai-seo", async (req, res) => {
     try {
@@ -2520,4 +2594,85 @@ function auditPage(url: string, $: cheerio.CheerioAPI) {
       .filter((i) => i.status !== "pass")
       .map((i) => i.message),
   };
+}
+
+// ── Ads Platform Connect + Metrics ─────────────────────────────────────────────
+async function fetchGoogleAdsMetrics(customerId: string, accessToken: string, developerToken: string) {
+  const cid = customerId.replace(/-/g, "");
+  const query = `SELECT metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value, metrics.ctr, metrics.average_cpc, metrics.cost_per_conversion, campaign.status FROM campaign WHERE segments.date DURING LAST_30_DAYS AND campaign.status = 'ENABLED'`;
+  const res = await axios.post(
+    `https://googleads.googleapis.com/v17/customers/${cid}/googleAds:search`,
+    { query },
+    { headers: { Authorization: `Bearer ${accessToken}`, "developer-token": developerToken, "Content-Type": "application/json" }, timeout: 15000 }
+  );
+  const rows = res.data.results || [];
+  let impressions = 0, clicks = 0, costMicros = 0, conversions = 0, convValue = 0, activeCampaigns = 0;
+  for (const r of rows) {
+    const m = r.metrics || {};
+    impressions   += Number(m.impressions || 0);
+    clicks        += Number(m.clicks || 0);
+    costMicros    += Number(m.costMicros || 0);
+    conversions   += Number(m.conversions || 0);
+    convValue     += Number(m.conversionsValue || 0);
+    activeCampaigns++;
+  }
+  const spend = costMicros / 1_000_000;
+  const ctr   = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  const cpc   = clicks > 0 ? spend / clicks : 0;
+  const cpa   = conversions > 0 ? spend / conversions : 0;
+  const roas  = spend > 0 ? convValue / spend : 0;
+  const convRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
+  return { impressions, clicks, spend: spend.toFixed(2), conversions: conversions.toFixed(0), convRate: convRate.toFixed(2), convValue: convValue.toFixed(2), ctr: ctr.toFixed(2), cpc: cpc.toFixed(2), cpa: cpa.toFixed(2), roas: roas.toFixed(2), activeCampaigns, platform: "Google" };
+}
+
+async function fetchMetaAdsMetrics(adAccountId: string, accessToken: string, leadGenOnly = false) {
+  const accountId = adAccountId.startsWith("act_") ? adAccountId : `act_${adAccountId}`;
+  const fields = "spend,impressions,clicks,reach,actions,action_values,ctr,cpc,cost_per_action_type";
+  const params: Record<string,string> = { access_token: accessToken, fields, date_preset: "last_30d", level: "account" };
+  if (leadGenOnly) params.filtering = JSON.stringify([{ field: "objective", operator: "IN", value: ["LEAD_GENERATION"] }]);
+  const res = await axios.get(`https://graph.facebook.com/v19.0/${accountId}/insights`, { params, timeout: 15000 });
+  const d = res.data.data?.[0] || {};
+  const getAction = (type: string) => (d.actions || []).find((a: any) => a.action_type === type)?.value || "0";
+  const getActionVal = (type: string) => (d.action_values || []).find((a: any) => a.action_type === type)?.value || "0";
+  const conversions = parseFloat(getAction("offsite_conversion.fb_pixel_purchase") || getAction("lead") || "0");
+  const convValue   = parseFloat(getActionVal("offsite_conversion.fb_pixel_purchase") || "0");
+  const spend       = parseFloat(d.spend || "0");
+  const impressions = parseInt(d.impressions || "0");
+  const clicks      = parseInt(d.clicks || "0");
+  const ctr         = parseFloat(d.ctr || "0");
+  const cpc         = parseFloat(d.cpc || "0");
+  const roas        = spend > 0 ? convValue / spend : 0;
+  const cpa         = conversions > 0 ? spend / conversions : 0;
+  const convRate    = clicks > 0 ? (conversions / clicks) * 100 : 0;
+  return { impressions, clicks, spend: spend.toFixed(2), conversions: conversions.toFixed(0), convRate: convRate.toFixed(2), convValue: convValue.toFixed(2), ctr: ctr.toFixed(2), cpc: cpc.toFixed(2), cpa: cpa.toFixed(2), roas: roas.toFixed(2), activeCampaigns: 0, platform: leadGenOnly ? "Meta Leads" : "Meta" };
+}
+
+async function fetchLinkedInAdsMetrics(adAccountId: string, accessToken: string) {
+  const now = new Date();
+  const start = new Date(now); start.setDate(start.getDate() - 30);
+  const params = {
+    q: "analytics", pivot: "CAMPAIGN", timeGranularity: "MONTHLY",
+    "dateRange.start.year": start.getFullYear(), "dateRange.start.month": start.getMonth() + 1, "dateRange.start.day": start.getDate(),
+    "dateRange.end.year": now.getFullYear(), "dateRange.end.month": now.getMonth() + 1, "dateRange.end.day": now.getDate(),
+    [`accounts`]: `urn:li:sponsoredAccount:${adAccountId}`,
+    fields: "externalWebsiteConversions,clicks,impressions,costInLocalCurrency,externalWebsitePostClickConversions,leadGenerationMailContactInfoShares,conversionValueInLocalCurrency",
+  };
+  const res = await axios.get("https://api.linkedin.com/rest/adAnalytics", {
+    params, headers: { Authorization: `Bearer ${accessToken}`, "LinkedIn-Version": "202401" }, timeout: 15000,
+  });
+  const rows = res.data.elements || [];
+  let impressions = 0, clicks = 0, spend = 0, conversions = 0, convValue = 0;
+  for (const r of rows) {
+    impressions += parseInt(r.impressions || "0");
+    clicks      += parseInt(r.clicks || "0");
+    spend       += parseFloat(r.costInLocalCurrency || "0");
+    conversions += parseInt(r.externalWebsiteConversions || r.externalWebsitePostClickConversions || "0");
+    convValue   += parseFloat(r.conversionValueInLocalCurrency || "0");
+  }
+  const ctr      = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  const cpc      = clicks > 0 ? spend / clicks : 0;
+  const cpa      = conversions > 0 ? spend / conversions : 0;
+  const roas     = spend > 0 ? convValue / spend : 0;
+  const convRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
+  return { impressions, clicks, spend: spend.toFixed(2), conversions: conversions.toFixed(0), convRate: convRate.toFixed(2), convValue: convValue.toFixed(2), ctr: ctr.toFixed(2), cpc: cpc.toFixed(2), cpa: cpa.toFixed(2), roas: roas.toFixed(2), activeCampaigns: rows.length, platform: "LinkedIn" };
 }
