@@ -24,6 +24,7 @@ import { KeywordGapAnalyzer } from "@/components/KeywordGapAnalyzer";
 import { GSCImporter } from "@/components/GSCImporter";
 import { ContentMatchTool } from "@/components/ContentMatchTool";
 import { WatermarkRemover } from "@/components/WatermarkRemover";
+import { ZipCompressor } from "@/components/ZipCompressor";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -482,6 +483,7 @@ export default function SEOAuditTools() {
             <TabsTrigger value="gsc-import" className="flex items-center gap-1.5 text-xs"><TrendingUp className="h-3 w-3" />GSC Import</TabsTrigger>
             <TabsTrigger value="content-match" className="flex items-center gap-1.5 text-xs"><FileText className="h-3 w-3" />Content Match</TabsTrigger>
             <TabsTrigger value="watermark" className="flex items-center gap-1.5 text-xs"><Image className="h-3 w-3" />Watermark Remove</TabsTrigger>
+            <TabsTrigger value="zip-compressor" className="flex items-center gap-1.5 text-xs"><FileCode className="h-3 w-3" />ZIP Compressor</TabsTrigger>
           </TabsList>
 
           {/* ─── Site Audit ─── */}

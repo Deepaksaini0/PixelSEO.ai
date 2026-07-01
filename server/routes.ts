@@ -2216,6 +2216,38 @@ Return ONLY valid JSON (no markdown) with EXACTLY this structure:
     }
   });
 
+  // ── ZIP Compressor ─────────────────────────────────────────────────────────
+  app.post("/api/tools/zip-compress", upload.array("files", 100), async (req, res) => {
+    const files = req.files as Express.Multer.File[] | undefined;
+    if (!files || files.length === 0) return res.status(400).json({ error: "No files uploaded" });
+    const level = Math.min(9, Math.max(0, parseInt((req.body.level as string) || "6")));
+    const zipNameRaw = ((req.body.zipName as string) || "compressed").replace(/[^a-zA-Z0-9_\-. ]/g, "").trim() || "compressed";
+    const zipName = zipNameRaw + ".zip";
+    const zipPath = path.join(OUTPUT_DIR, `zip-${Date.now()}.zip`);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const output = fs.createWriteStream(zipPath);
+        const archive = archiver("zip", { zlib: { level } });
+        output.on("close", resolve);
+        archive.on("error", reject);
+        archive.pipe(output);
+        for (const f of files) archive.file(f.path, { name: f.originalname });
+        archive.finalize();
+      });
+      res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
+      res.setHeader("Content-Type", "application/zip");
+      const stream = fs.createReadStream(zipPath);
+      stream.pipe(res);
+      stream.on("end", () => {
+        fs.unlink(zipPath, () => {});
+        for (const f of files) fs.unlink(f.path, () => {});
+      });
+    } catch (err: any) {
+      for (const f of files) fs.unlink(f.path, () => {});
+      res.status(500).json({ error: err.message || "ZIP creation failed" });
+    }
+  });
+
   // ── Ads Platform: Connect (validate credentials) ───────────────────────────
   app.post("/api/ads/connect", async (req, res) => {
     try {
