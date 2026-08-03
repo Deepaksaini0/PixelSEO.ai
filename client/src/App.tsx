@@ -4,7 +4,6 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { PageReviews } from "@/components/reviews/PageReviews";
 import Home from "@/pages/Home";
 import FAQPage from "@/pages/FAQ";
 import LLMPage from "@/pages/LLM";
@@ -126,12 +125,6 @@ function Router() {
         <Route path="/web-tools" component={WebToolsPage} />
         <Route component={NotFound} />
       </Switch>
-
-      {!isFullPage && location !== "/not-found" && (
-        <div className="container mx-auto px-4 max-w-4xl py-12">
-          <PageReviews pagePath={location} />
-        </div>
-      )}
     </div>
   );
 }
