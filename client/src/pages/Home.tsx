@@ -10,7 +10,7 @@ import { ResultCard } from "@/components/ResultCard";
 import { ImageEditor } from "@/components/ImageEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, FileText, HelpCircle, FileJson, Zap, Code, BarChart3, Sparkles, Eraser } from "lucide-react";
+import { ArrowLeft, Download, RotateCcw, Image as ImageIcon, FileText, HelpCircle, FileJson, Zap, Code, BarChart3, Sparkles, Eraser, Palette } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -325,6 +325,12 @@ export default function Home() {
                     <Button variant="outline" className="flex items-center gap-2 hover-elevate" data-testid="button-llms-nav">
                       <FileJson className="h-4 w-4" />
                       <span className="hidden sm:inline">llms.txt</span>
+                    </Button>
+                  </Link>
+                  <Link href="/colors-from-image">
+                    <Button variant="outline" className="flex items-center gap-2 hover-elevate" data-testid="button-colors-nav">
+                      <Palette className="h-4 w-4" />
+                      <span className="hidden sm:inline">Colors from Image</span>
                     </Button>
                   </Link>
                 </>

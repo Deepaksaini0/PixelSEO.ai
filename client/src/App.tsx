@@ -13,6 +13,7 @@ import TextToHTMLPage from "@/pages/TextToHTML";
 import WebToolsPage from "@/pages/WebTools";
 import AISEOAuditPage from "@/pages/AISEOAudit";
 import WatermarkRemoverPage from "@/pages/WatermarkRemoverPage";
+import ColorsFromImagePage from "@/pages/ColorsFromImage";
 import NotFound from "@/pages/not-found";
 
 // ── Per-page SEO metadata ──────────────────────────────────────────────────────
@@ -56,6 +57,11 @@ const PAGE_META: Record<string, { title: string; description: string; canonical:
     title: "Free AI Watermark Remover — Remove Watermarks from Images Online",
     description: "Remove watermarks from images for free using AI. Automatically detects and removes text watermarks, logo stamps and overlays. Before/after slider, no signup needed.",
     canonical: "https://imageconvert.tools/watermark-remover",
+  },
+  "/colors-from-image": {
+    title: "Colors from Image — Extract Color Palette & Dominant Colors Online",
+    description: "Upload any image to instantly extract its dominant color and full color palette. Copy hex codes with one click. Free online color picker tool.",
+    canonical: "https://imageconvert.tools/colors-from-image",
   },
 };
 
@@ -123,6 +129,7 @@ function Router() {
         <Route path="/watermark-remover" component={WatermarkRemoverPage} />
         <Route path="/text-to-html" component={TextToHTMLPage} />
         <Route path="/web-tools" component={WebToolsPage} />
+        <Route path="/colors-from-image" component={ColorsFromImagePage} />
         <Route component={NotFound} />
       </Switch>
     </div>
