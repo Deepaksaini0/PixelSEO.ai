@@ -9,11 +9,6 @@ interface ColorEntry {
   count: number;
 }
 
-// Quantize a colour to a bucket size for grouping
-function quantize(value: number, bucketSize: number) {
-  return Math.round(value / bucketSize) * bucketSize;
-}
-
 function rgbToHex(r: number, g: number, b: number) {
   return (
     "#" +
@@ -23,27 +18,43 @@ function rgbToHex(r: number, g: number, b: number) {
   );
 }
 
+/** Euclidean distance between two hex colours in RGB space */
+function colorDistance(a: string, b: string): number {
+  const ra = parseInt(a.slice(1, 3), 16);
+  const ga = parseInt(a.slice(3, 5), 16);
+  const ba = parseInt(a.slice(5, 7), 16);
+  const rb = parseInt(b.slice(1, 3), 16);
+  const gb = parseInt(b.slice(3, 5), 16);
+  const bb = parseInt(b.slice(5, 7), 16);
+  return Math.sqrt((ra - rb) ** 2 + (ga - gb) ** 2 + (ba - bb) ** 2);
+}
+
 function extractColors(imageData: ImageData, maxColors = 20): ColorEntry[] {
   const { data } = imageData;
-  const bucketSize = 16;
   const colorMap: Map<string, number> = new Map();
 
+  // Sample every pixel — exact colours, no rounding
   for (let i = 0; i < data.length; i += 4) {
     const a = data[i + 3];
-    if (a < 128) continue; // skip transparent
-    const r = quantize(data[i], bucketSize);
-    const g = quantize(data[i + 1], bucketSize);
-    const b = quantize(data[i + 2], bucketSize);
-    const hex = rgbToHex(r, g, b);
+    if (a < 128) continue; // skip transparent / near-transparent pixels
+    const hex = rgbToHex(data[i], data[i + 1], data[i + 2]);
     colorMap.set(hex, (colorMap.get(hex) ?? 0) + 1);
   }
 
-  const sorted = Array.from(colorMap.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, maxColors)
-    .map(([hex, count]) => ({ hex, count }));
+  // Sort by frequency (most used first)
+  const sorted = Array.from(colorMap.entries()).sort((a, b) => b[1] - a[1]);
 
-  return sorted;
+  // Pick up to maxColors distinct colours that are perceptually different enough
+  const result: ColorEntry[] = [];
+  const MIN_DISTANCE = 18; // minimum Euclidean RGB distance to keep a colour
+
+  for (const [hex, count] of sorted) {
+    if (result.length >= maxColors) break;
+    const tooClose = result.some((e) => colorDistance(e.hex, hex) < MIN_DISTANCE);
+    if (!tooClose) result.push({ hex, count });
+  }
+
+  return result;
 }
 
 export default function ColorsFromImage() {
