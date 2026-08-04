@@ -14,6 +14,7 @@ interface ResultCardProps {
 export function ResultCard({ result, index }: ResultCardProps) {
   const percentSaved = Math.round(((result.originalSize - result.newSize) / result.originalSize) * 100);
   const isReduction = percentSaved > 0;
+  const ext = result.filename.split(".").pop()?.toLowerCase() ?? "";
 
   return (
     <motion.div
@@ -45,9 +46,16 @@ export function ResultCard({ result, index }: ResultCardProps) {
         <div className="p-5 flex flex-col flex-1">
           <div className="flex items-start justify-between mb-4">
             <div className="min-w-0">
-              <h4 className="font-semibold text-foreground truncate max-w-[200px]" title={result.filename}>
-                {result.filename}
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4 className="font-semibold text-foreground truncate max-w-[180px]" title={result.filename}>
+                  {result.filename}
+                </h4>
+                {ext && (
+                  <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-primary/10 text-primary border border-primary/20">
+                    {ext}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mt-1 font-mono">
                 {result.width} x {result.height}px
               </p>
