@@ -46,6 +46,7 @@ export type UploadedFile = z.infer<typeof uploadedFileSchema>;
 
 export const processRequestSchema = z.object({
   fileIds: z.array(z.string()),
+  fileNames: z.record(z.string(), z.string()).optional(),
   options: conversionOptionsSchema
 });
 

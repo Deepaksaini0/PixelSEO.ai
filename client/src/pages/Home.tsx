@@ -82,6 +82,7 @@ export default function Home() {
     try {
       const response = await processMutation.mutateAsync({
         fileIds: uploadedFiles.map(f => f.id),
+        fileNames: Object.fromEntries(uploadedFiles.map(f => [f.id, f.originalName])),
         options,
       });
       

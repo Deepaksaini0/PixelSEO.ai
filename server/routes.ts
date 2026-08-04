@@ -1397,7 +1397,7 @@ ${Array.from(visited).map(page => {
   // Process Endpoint
   app.post(api.process.path, async (req, res) => {
     try {
-      const { fileIds, options } = processRequestSchema.parse(req.body);
+      const { fileIds, fileNames, options } = processRequestSchema.parse(req.body);
       const results = [];
       const zipName = `batch-${Date.now()}.zip`;
       const zipPath = path.join(OUTPUT_DIR, zipName);
@@ -1500,8 +1500,11 @@ ${Array.from(visited).map(page => {
             .toBuffer();
         }
 
-        // Save output
-        const outputFilename = `processed-${path.parse(fileId).name}.${format}`;
+        // Save output — use original name when available
+        const baseName = fileNames?.[fileId]
+          ? path.parse(fileNames[fileId]).name
+          : `processed-${path.parse(fileId).name}`;
+        const outputFilename = `${baseName}.${format}`;
         const outputPath = path.join(OUTPUT_DIR, outputFilename);
         fs.writeFileSync(outputPath, outputBuffer);
 
