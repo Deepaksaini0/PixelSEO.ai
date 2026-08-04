@@ -1905,7 +1905,7 @@ ${Array.from(visited).map(page => {
     try {
       await execFileAsync("qpdf", [
         "--encrypt", userPassword, ownerPassword, "256",
-        "--print=full", "--modify=all", "--copy-text",
+        "--print=full", "--modify=all", "--extract=y",
         "--",
         inputPath, outputPath,
       ]);
