@@ -1500,11 +1500,12 @@ ${Array.from(visited).map(page => {
             .toBuffer();
         }
 
-        // Save output — use original name when available
-        const baseName = fileNames?.[fileId]
+        // Save output — use original name when available, sanitize for URL safety
+        const rawBase = fileNames?.[fileId]
           ? path.parse(fileNames[fileId]).name
           : `processed-${path.parse(fileId).name}`;
-        const outputFilename = `${baseName}.${format}`;
+        const sanitizedBase = rawBase.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+        const outputFilename = `${sanitizedBase}.${format}`;
         const outputPath = path.join(OUTPUT_DIR, outputFilename);
         fs.writeFileSync(outputPath, outputBuffer);
 
