@@ -14,6 +14,7 @@ import WebToolsPage from "@/pages/WebTools";
 import AISEOAuditPage from "@/pages/AISEOAudit";
 import WatermarkRemoverPage from "@/pages/WatermarkRemoverPage";
 import ColorsFromImagePage from "@/pages/ColorsFromImage";
+import PDFSecurityPage from "@/pages/PDFSecurity";
 import NotFound from "@/pages/not-found";
 
 // ── Per-page SEO metadata ──────────────────────────────────────────────────────
@@ -62,6 +63,11 @@ const PAGE_META: Record<string, { title: string; description: string; canonical:
     title: "Colors from Image — Extract Color Palette & Dominant Colors Online",
     description: "Upload any image to instantly extract its dominant color and full color palette. Copy hex codes with one click. Free online color picker tool.",
     canonical: "https://imageconvert.tools/colors-from-image",
+  },
+  "/pdf-security": {
+    title: "PDF Security — Protect & Unlock PDF Files Online Free",
+    description: "Password-protect your PDF with 256-bit AES encryption or remove password protection from any PDF instantly. Free, secure, and no signup needed.",
+    canonical: "https://imageconvert.tools/pdf-security",
   },
 };
 
@@ -130,6 +136,7 @@ function Router() {
         <Route path="/text-to-html" component={TextToHTMLPage} />
         <Route path="/web-tools" component={WebToolsPage} />
         <Route path="/colors-from-image" component={ColorsFromImagePage} />
+        <Route path="/pdf-security" component={PDFSecurityPage} />
         <Route component={NotFound} />
       </Switch>
     </div>

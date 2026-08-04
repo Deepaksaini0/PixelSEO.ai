@@ -8,6 +8,9 @@ import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
+import { execFile } from "child_process";
+import { promisify as promisifyUtil } from "util";
+const execFileAsync = promisifyUtil(execFile);
 // @ts-ignore
 import potrace from "potrace";
 import { promisify } from "util";
@@ -1868,6 +1871,83 @@ ${Array.from(visited).map(page => {
     } catch (error) {
       console.error("Document conversion error:", error);
       res.status(500).json({ message: "Error converting document" });
+    }
+  });
+
+  // ── PDF Security Endpoints ──────────────────────────────────────────────────
+  const pdfSecUpload = multer({
+    storage: multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+      filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, "-")}`),
+    }),
+    limits: { fileSize: 50 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype === "application/pdf" || file.originalname.toLowerCase().endsWith(".pdf")) {
+        cb(null, true);
+      } else {
+        cb(new Error("Only PDF files are allowed"));
+      }
+    },
+  });
+
+  app.post("/api/pdf/protect", pdfSecUpload.single("file"), async (req: any, res) => {
+    if (!req.file) return res.status(400).json({ message: "No PDF file uploaded" });
+    const userPassword: string = req.body.userPassword || "";
+    const ownerPassword: string = req.body.ownerPassword || userPassword;
+    if (!userPassword && !ownerPassword) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ message: "At least one password is required" });
+    }
+    const inputPath = req.file.path;
+    const baseName = path.parse(req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "-")).name;
+    const outputFilename = `${baseName}-protected.pdf`;
+    const outputPath = path.join(OUTPUT_DIR, outputFilename);
+    try {
+      await execFileAsync("qpdf", [
+        "--encrypt", userPassword, ownerPassword, "256",
+        "--print=full", "--modify=all", "--copy-text",
+        "--",
+        inputPath, outputPath,
+      ]);
+      const originalSize = fs.statSync(inputPath).size;
+      const newSize = fs.statSync(outputPath).size;
+      fs.unlinkSync(inputPath);
+      res.json({ url: `/output/${outputFilename}`, filename: outputFilename, originalSize, newSize });
+    } catch (err: any) {
+      if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+      console.error("PDF protect error:", err.message || err);
+      res.status(500).json({ message: "Failed to protect PDF" });
+    }
+  });
+
+  app.post("/api/pdf/unlock", pdfSecUpload.single("file"), async (req: any, res) => {
+    if (!req.file) return res.status(400).json({ message: "No PDF file uploaded" });
+    const password: string = req.body.password || "";
+    if (!password) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ message: "Password is required" });
+    }
+    const inputPath = req.file.path;
+    const baseName = path.parse(req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "-")).name;
+    const outputFilename = `${baseName}-unlocked.pdf`;
+    const outputPath = path.join(OUTPUT_DIR, outputFilename);
+    try {
+      await execFileAsync("qpdf", [
+        "--password=" + password,
+        "--decrypt",
+        inputPath, outputPath,
+      ]);
+      const originalSize = fs.statSync(inputPath).size;
+      const newSize = fs.statSync(outputPath).size;
+      fs.unlinkSync(inputPath);
+      res.json({ url: `/output/${outputFilename}`, filename: outputFilename, originalSize, newSize });
+    } catch (err: any) {
+      if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+      console.error("PDF unlock error:", err.message || err);
+      const msg = (err.stderr || err.message || "").includes("invalid password")
+        ? "Incorrect password — please try again."
+        : "Failed to unlock PDF. The password may be incorrect.";
+      res.status(400).json({ message: msg });
     }
   });
 
