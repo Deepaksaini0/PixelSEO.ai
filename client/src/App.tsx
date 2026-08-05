@@ -15,6 +15,8 @@ import AISEOAuditPage from "@/pages/AISEOAudit";
 import WatermarkRemoverPage from "@/pages/WatermarkRemoverPage";
 import ColorsFromImagePage from "@/pages/ColorsFromImage";
 import PDFSecurityPage from "@/pages/PDFSecurity";
+import BarcodeGeneratorPage from "@/pages/BarcodeGenerator";
+import PasswordGeneratorPage from "@/pages/PasswordGenerator";
 import NotFound from "@/pages/not-found";
 
 // ── Per-page SEO metadata ──────────────────────────────────────────────────────
@@ -68,6 +70,16 @@ const PAGE_META: Record<string, { title: string; description: string; canonical:
     title: "PDF Security — Protect & Unlock PDF Files Online Free",
     description: "Password-protect your PDF with 256-bit AES encryption or remove password protection from any PDF instantly. Free, secure, and no signup needed.",
     canonical: "https://imageconvert.tools/pdf-security",
+  },
+  "/barcode-generator": {
+    title: "Free Barcode Generator — Create CODE128, EAN-13, QR & More Online",
+    description: "Generate barcodes in multiple formats including CODE128, EAN-13, EAN-8, UPC-A, CODE39, and more. Customize colors, size, and download as PNG or SVG. Free online barcode maker.",
+    canonical: "https://imageconvert.tools/barcode-generator",
+  },
+  "/password-generator": {
+    title: "Free Password Generator — Create Strong, Secure Random Passwords",
+    description: "Generate strong, random passwords instantly. Customize length, character types, and quantity. 100% client-side — passwords are never sent to a server.",
+    canonical: "https://imageconvert.tools/password-generator",
   },
 };
 
@@ -137,6 +149,8 @@ function Router() {
         <Route path="/web-tools" component={WebToolsPage} />
         <Route path="/colors-from-image" component={ColorsFromImagePage} />
         <Route path="/pdf-security" component={PDFSecurityPage} />
+        <Route path="/barcode-generator" component={BarcodeGeneratorPage} />
+        <Route path="/password-generator" component={PasswordGeneratorPage} />
         <Route component={NotFound} />
       </Switch>
     </div>
