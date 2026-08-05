@@ -13,6 +13,7 @@ import {
   ExternalLink, Copy, Mail, Calendar, Users, Link2, Gauge,
   Trophy, Clock, Lightbulb, BookOpen, Activity, Bell, ChevronRight,
   FileSpreadsheet, LayoutList, History, X, Trash2,
+  ScanBarcode, KeyRound, Palette, ShieldCheck, Image,
 } from "lucide-react";
 
 // ── Interfaces ─────────────────────────────────────────────────────────────────
@@ -1273,9 +1274,37 @@ export default function AISEOAudit() {
                   </Button>
                 </div>
               </div>
+
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ── More Free Tools (always visible) ─────────────────────────────── */}
+        {seoSubTab === "google" && (
+          <div className="rounded-xl border border-gray-200 bg-white p-6">
+            <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-indigo-500" />
+              More Free Tools
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { href: "/barcode-generator", icon: ScanBarcode, label: "Barcode Generator", color: "text-amber-600 bg-amber-50 border-amber-200" },
+                { href: "/password-generator", icon: KeyRound, label: "Password Generator", color: "text-blue-600 bg-blue-50 border-blue-200" },
+                { href: "/colors-from-image", icon: Palette, label: "Colors from Image", color: "text-pink-600 bg-pink-50 border-pink-200" },
+                { href: "/pdf-security", icon: ShieldCheck, label: "PDF Security", color: "text-green-600 bg-green-50 border-green-200" },
+                { href: "/", icon: Image, label: "Image Converter", color: "text-indigo-600 bg-indigo-50 border-indigo-200" },
+                { href: "/web-tools", icon: Zap, label: "Web Tools", color: "text-violet-600 bg-violet-50 border-violet-200" },
+              ].map(({ href, icon: Icon, label, color }) => (
+                <Link key={href} href={href}>
+                  <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity ${color}`}>
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs font-semibold">{label}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════════
             LOCAL SEO TAB
