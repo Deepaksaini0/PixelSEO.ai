@@ -316,6 +316,18 @@ export default function Home() {
                       <span className="hidden sm:inline">Watermark Remover</span>
                     </Button>
                   </Link>
+                  <Link href="/barcode-generator">
+                    <Button variant="outline" className="flex items-center gap-2 hover-elevate" data-testid="button-barcode-nav">
+                      <ScanBarcode className="h-4 w-4" />
+                      <span className="hidden sm:inline">Barcode Generator</span>
+                    </Button>
+                  </Link>
+                  <Link href="/password-generator">
+                    <Button variant="outline" className="flex items-center gap-2 hover-elevate" data-testid="button-password-nav">
+                      <KeyRound className="h-4 w-4" />
+                      <span className="hidden sm:inline">Password Generator</span>
+                    </Button>
+                  </Link>
                   <Link href="/faq">
                     <Button variant="outline" className="flex items-center gap-2 hover-elevate" data-testid="button-faq-nav">
                       <HelpCircle className="h-4 w-4" />
@@ -338,18 +350,6 @@ export default function Home() {
                     <Button variant="outline" className="flex items-center gap-2 hover-elevate" data-testid="button-pdf-security-nav">
                       <ShieldCheck className="h-4 w-4" />
                       <span className="hidden sm:inline">PDF Security</span>
-                    </Button>
-                  </Link>
-                  <Link href="/barcode-generator">
-                    <Button variant="outline" className="flex items-center gap-2 hover-elevate" data-testid="button-barcode-nav">
-                      <ScanBarcode className="h-4 w-4" />
-                      <span className="hidden sm:inline">Barcode Generator</span>
-                    </Button>
-                  </Link>
-                  <Link href="/password-generator">
-                    <Button variant="outline" className="flex items-center gap-2 hover-elevate" data-testid="button-password-nav">
-                      <KeyRound className="h-4 w-4" />
-                      <span className="hidden sm:inline">Password Generator</span>
                     </Button>
                   </Link>
                 </>

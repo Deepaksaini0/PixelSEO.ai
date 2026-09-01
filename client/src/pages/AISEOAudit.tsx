@@ -314,6 +314,7 @@ export default function AISEOAudit() {
   const [seoSubTab, setSeoSubTab] = useState<"google" | "local" | "ai">("google");
   const [activeNavTab, setActiveNavTab] = useState("SEO");
   const [adsSubTab, setAdsSubTab] = useState("Google");
+  const [showFreeTools, setShowFreeTools] = useState(false);
 
   // ── Ads platform connection state ──────────────────────────────────────────
   type AdsConn = { credentials: Record<string,string>; metrics: any; syncedAt: string };
@@ -721,9 +722,36 @@ export default function AISEOAudit() {
               )}
             </button>
             <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><Bell className="h-4 w-4 text-gray-500" /></button>
-            <button className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg px-2.5 py-1.5 transition-colors border border-gray-200">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Free Tools <ChevronDown className="h-3 w-3" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowFreeTools((open) => !open)}
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg px-2.5 py-1.5 transition-colors border border-gray-200"
+                aria-expanded={showFreeTools}
+                aria-haspopup="menu"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Free Tools <ChevronDown className={`h-3 w-3 transition-transform ${showFreeTools ? "rotate-180" : ""}`} />
+              </button>
+              {showFreeTools && (
+                <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-xl z-50" role="menu">
+                  {[
+                    { href: "/watermark-remover", label: "Watermark Remover", icon: Eraser, color: "text-rose-600 bg-rose-50" },
+                    { href: "/barcode-generator", label: "Barcode Generator", icon: ScanBarcode, color: "text-amber-600 bg-amber-50" },
+                    { href: "/password-generator", label: "Password Generator", icon: KeyRound, color: "text-blue-600 bg-blue-50" },
+                    { href: "/colors-from-image", label: "Colors from Image", icon: Palette, color: "text-pink-600 bg-pink-50" },
+                    { href: "/pdf-security", label: "PDF Security", icon: ShieldCheck, color: "text-green-600 bg-green-50" },
+                  ].map(({ href, label, icon: Icon, color }) => (
+                    <Link key={href} href={href} onClick={() => setShowFreeTools(false)}>
+                      <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors" role="menuitem">
+                        <span className={`h-7 w-7 rounded-md flex items-center justify-center ${color}`}>
+                          <Icon className="h-3.5 w-3.5" />
+                        </span>
+                        {label}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[11px] font-bold select-none">DK</div>
           </div>
         </div>
