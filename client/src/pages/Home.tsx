@@ -188,7 +188,7 @@ export default function Home() {
             {/* Mode Tabs */}
             <div className="flex-shrink-0 border-b border-border/50 p-4 bg-gray-300">
               <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
-                <TabsList className="grid w-full grid-cols-3 bg-gray-300">
+                  <TabsList className="grid w-full grid-cols-4 bg-gray-300">
                   <TabsTrigger value="convert" className="btn-secondary bg-gray-300 text-black hover:bg-gray-400">Convert</TabsTrigger>
                   <TabsTrigger value="merge" className="btn-secondary bg-gray-300 text-black hover:bg-gray-400">Merge</TabsTrigger>
                   <TabsTrigger value="editor" className="btn-secondary bg-gray-300 text-black hover:bg-gray-400">Edit</TabsTrigger>
@@ -256,7 +256,7 @@ export default function Home() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 h-screen overflow-y-auto relative scroll-smooth">
+      <main className="min-w-0 flex-1 h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth">
         
         {/* Decorative Background Elements */}
         <div className="fixed inset-0 pointer-events-none z-0">
@@ -267,7 +267,7 @@ export default function Home() {
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 md:px-8 md:py-12">
           
           {/* Header */}
-          <div className="flex items-center justify-between mb-10">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between mb-10">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
                 <ImageIcon className="h-6 w-6 text-white" />
@@ -277,7 +277,7 @@ export default function Home() {
               </h1>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-start xl:justify-end gap-2 max-w-full">
               {!showResults && (
                 <>
                   <Link href="/free-seo-audit">
